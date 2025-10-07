@@ -1,0 +1,31 @@
+Copy to .env for persistent configuration. Existing exported shell variables take precedence.
+
+# Security / Auth
+LPS2_API_KEY=change_me_secure_key
+LPS2_SECRET_KEY=generate_a_strong_random_key_for_production
+LPS2_ADMIN_PASSWORD=replace_with_secure_password
+LPS2_CSRF_EXPIRY=3600
+LPS2_ENABLE_TLS=1
+
+# Rate limiting
+LPS2_RATE_WINDOW=60
+LPS2_RATE_MAX=120
+LPS2_RATE_BURST=30
+
+# Quarantine & PII
+LPS2_QUARANTINE=1
+LPS2_PII_REDACT=1
+
+# Generation controls
+LPS2_MAX_TOKENS=2048
+LPS2_CONTINUE_ROUNDS=3
+LPS2_AUTO_CONTINUE=1
+LPS2_TEMPERATURE=0.6
+LPS2_TOP_P=0.9
+
+# Embeddings
+LPS2_EMBED_MODEL=sentence-transformers/all-MiniLM-L6-v2
+
+# OCR (optional tuning)
+LPS2_OCR_MAX_PAGES=50
+LPS2_OCR_DPI=200

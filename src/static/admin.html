@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Admin Console - LPS2</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+ :root {
+   /* Light theme variables */
+   --bg-gradient-start: #f8fafc;
+   --bg-gradient-end: #e3e6ea;
+   --text-color: #222;
+   --subtle-text: #555;
+   --panel-bg: rgba(255,255,255,0.95);
+   --border-color: #e5e7eb;
+   --chat-bg: #f6f8fa;
+   --code-bg: #23272f;
+   --code-text: #f8f8f2;
+   --inline-code-bg: #e9ecef;
+   --inline-code-text: #c7254e;
+   --user-color: #007aff;
+   --btn-gradient-start: #007aff;
+   --btn-gradient-end: #00c6fb;
+   --shadow-strong: 0 8px 32px rgba(0,0,0,0.12), 0 1.5px 4px rgba(0,0,0,0.04);
+   --note-badge-bg: #eef2f7;
+   --note-badge-border: #d8e0e9;
+   --note-badge-text: #334155;
+ }
+
+ /* Dark theme variables */
+ .dark-mode {
+   --bg-gradient-start: #111827;
+   --bg-gradient-end: #1f2937;
+   --text-color: #f1f5f9;
+   --subtle-text: #94a3b8;
+   --panel-bg: rgba(30,41,59,0.9);
+   --border-color: #334155;
+   --chat-bg: #1e293b;
+   --code-bg: #0f172a;
+   --code-text: #e2e8f0;
+   --inline-code-bg: #334155;
+   --inline-code-text: #fbbf24;
+   --user-color: #60a5fa;
+   --btn-gradient-start: #2563eb;
+   --btn-gradient-end: #0ea5e9;
+   --shadow-strong: 0 8px 32px rgba(0,0,0,0.5), 0 1.5px 4px rgba(0,0,0,0.4);
+   --note-badge-bg: #1e293b;
+   --note-badge-border: #334155;
+   --note-badge-text: #e2e8f0;
+ }
+ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; margin:0; background:linear-gradient(135deg,var(--bg-gradient-start),var(--bg-gradient-end)); color:var(--text-color); }
+ header { padding:18px 26px; background:var(--panel-bg); border-bottom:1px solid var(--border-color); display:flex; gap:18px; align-items:center; position:sticky;top:0;z-index:100;backdrop-filter:blur(10px); }
+ h1 { font-size:1.25rem; margin:0; font-weight:600; letter-spacing:.5px; }
+ a.back { color:#60a5fa; font-size:0.7rem; text-decoration:none; font-weight:600; padding:6px 12px; border:1px solid var(--border-color); border-radius:20px; background:var(--inline-code-bg); }
+ a.back:focus-visible, button.back:focus-visible { outline:2px solid var(--btn-gradient-end); outline-offset:2px; box-shadow:0 0 0 2px rgba(14,165,233,0.35); }
+ main { max-width:1080px; margin:28px auto 80px; padding:0 26px; }
+ section.panel { background:var(--panel-bg); border:1px solid var(--border-color); border-radius:18px; padding:18px 22px 22px; margin-bottom:26px; box-shadow:0 4px 28px rgba(0,0,0,0.35),0 1px 0 rgba(255,255,255,0.04) inset; position:relative; }
+ section.panel h2 { margin:0 0 6px; font-size:0.9rem; letter-spacing:0.5px; font-weight:600; }
+ small.desc { display:block; font-size:0.58rem; line-height:1.35; opacity:0.78; margin-top:-2px; margin-bottom:12px; max-width:840px; }
+ .panel-toolbar { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-bottom:10px; }
+ input, textarea { font-family:inherit; background:var(--inline-code-bg); color:var(--text-color); border:1px solid var(--border-color); border-radius:10px; padding:8px 10px; font-size:0.65rem; }
+ textarea { resize:vertical; }
+ button { font-family:inherit; cursor:pointer; }
+ .lps2-btn { background:linear-gradient(90deg,var(--btn-gradient-start),var(--btn-gradient-end)); color:#fff; border:none; padding:8px 14px; font-size:0.6rem; border-radius:14px; font-weight:600; letter-spacing:.5px; display:inline-flex; align-items:center; gap:6px; box-shadow:0 2px 6px rgba(0,0,0,0.35); }
+ .lps2-btn.outline { background:var(--inline-code-bg); color:#60a5fa; border:1px solid var(--border-color); box-shadow:none; }
+ .lps2-btn.danger { background:#dc2626; }
+ .lps2-btn:disabled { filter:grayscale(.6); opacity:.55; cursor:not-allowed; }
+ table { width:100%; border-collapse:collapse; }
+ th, td { padding:4px 6px; font-size:0.55rem; text-align:left; }
+ th { font-weight:600; position:sticky; top:0; background:rgba(15,23,42,0.85); backdrop-filter:blur(6px); }
+ code { background:var(--inline-code-bg); padding:2px 6px; border-radius:6px; font-size:0.55rem; }
+ .danger-surface { background:#fee2e2; color:#b91c1c; }
+ /* Light/dark mode specific adjustments */
+ .status-ok { color:#10b981; }
+ .status-bad { color:#dc2626; }
+ .dark-mode .status-ok { color:#34d399; }
+ .dark-mode .status-bad { color:#f87171; }
+ .dark-mode .scroll-box { background: rgba(15, 23, 42, 0.3); }
+ .dark-mode #confirmModal > div { background: var(--panel-bg); border-color: var(--border-color); }
+ button.back { color: var(--user-color); border: 1px solid var(--border-color); background: var(--inline-code-bg); }
+ #toastContainer { position:fixed;top:14px;right:14px;z-index:3000;display:flex;flex-direction:column;gap:8px;max-width:280px; }
+ .badge { background:var(--inline-code-bg); border:1px solid var(--border-color); padding:4px 10px; border-radius:999px; font-size:0.55rem; font-weight:600; }
+ .split { display:flex; flex-wrap:wrap; gap:10px; }
+ .stack-sm { display:flex; flex-direction:column; gap:6px; }
+ .metric { font-size:0.55rem; padding:4px 8px; background:var(--inline-code-bg); border:1px solid var(--border-color); border-radius:8px; display:inline-flex; gap:6px; align-items:center; }
+ .scroll-box { max-height:200px; overflow:auto; border:1px solid var(--border-color); border-radius:10px; padding:6px; }
+ @media (max-width:760px){ main { padding:0 14px; } section.panel { padding:16px 16px 18px; } }
+</style>
+</head>
+<body>
+<header>
+  <nav style="display:flex;align-items:center;gap:14px;width:100%;" aria-label="Primary">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <a href="/" class="back" style="font-size:0.65rem;">💬 Chat</a>
+      <a href="/admin" class="back" style="font-size:0.65rem;background:linear-gradient(90deg,var(--btn-gradient-start),var(--btn-gradient-end));color:#fff;border-color:transparent;" aria-current="page">⚙️ Admin</a>
+      <button id="logoutBtn" class="back" style="font-size:0.65rem;color:#fca5a5;" type="button">Logout</button>
+    </div>
+    <h1 style="display:flex;align-items:center;gap:10px;margin:0;flex:1;justify-content:center;">⚙️ Admin Console <span id="activeEndpointBadge" class="badge" style="display:none;"></span></h1>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button id="themeToggle" class="back" style="font-size:0.65rem;">🌙 Dark</button>
+      <span id="adminUserBadge" class="badge" style="background:var(--inline-code-bg);"></span>
+    </div>
+  </nav>
+</header>
+<main>
+  <section class="panel" id="profilesPanel">
+    <h2>Inference Endpoint Profiles</h2>
+    <small class="desc">Manage and activate multiple inference backends. Test connectivity before activation.</small>
+    <div class="panel-toolbar">
+      <input id="epName" placeholder="profile name" style="flex:1;min-width:120px;">
+      <input id="epEndpoint" placeholder="http://host:port" style="flex:2;min-width:200px;">
+      <label style="display:flex;align-items:center;gap:4px;font-size:0.55rem;opacity:0.8;">
+        <input type="checkbox" id="epPersist" style="margin:0;"> persist
+      </label>
+      <button id="epTestBtn" class="lps2-btn outline">Test</button>
+      <button id="epSaveBtn" class="lps2-btn" disabled>Save/Update</button>
+      <button id="epActivateBtn" class="lps2-btn" disabled>Activate</button>
+      <button id="epDeleteBtn" class="lps2-btn danger" disabled>Delete</button>
+      <button id="epRefreshBtn" class="lps2-btn outline">Refresh</button>
+    </div>
+    <div id="epTestStatus" style="font-size:0.55rem;min-height:14px;margin-bottom:6px;opacity:0.85;"></div>
+    <div id="epProfilesList" class="scroll-box" style="max-height:210px;font-size:0.58rem;"></div>
+  </section>
+
+  <section class="panel" id="knowledgePanel">
+    <h2>Knowledge Base</h2>
+    <small class="desc">Ingest, search, and manage domain documents powering grounded answers.</small>
+    <div class="panel-toolbar">
+      <input id="kbFile" type="file" accept=".txt,.md,.pdf" style="font-size:0.6rem;" />
+      <label style="font-size:0.55rem;display:flex;align-items:center;gap:3px;opacity:0.8;"><input type="checkbox" id="kbOcr" style="margin:0;"> OCR</label>
+      <button id="kbIngestFileBtn" class="lps2-btn outline">Ingest File</button>
+      <button id="kbIngestTextOpenBtn" class="lps2-btn outline">Ingest Text</button>
+      <button id="kbListBtn" class="lps2-btn outline">List Docs</button>
+      <button id="kbDeleteBtn" class="lps2-btn danger" disabled>Delete</button>
+    </div>
+    <div id="kbIngestTextArea" style="display:none;margin-bottom:8px;">
+      <textarea id="kbText" placeholder="Paste text to ingest..." style="width:100%;min-height:120px;"></textarea>
+      <div style="display:flex;gap:6px;margin-top:4px;align-items:center;">
+        <input id="kbSource" placeholder="source label (optional)" style="flex:1;">
+        <button id="kbIngestTextBtn" class="lps2-btn">Submit</button>
+        <button id="kbIngestTextCancel" class="lps2-btn outline" type="button">Cancel</button>
+      </div>
+    </div>
+    <div class="panel-toolbar" style="margin-top:6px;">
+      <input id="kbSearchInput" placeholder="search KB..." style="flex:1;min-width:160px;">
+      <button id="kbSearchBtn" class="lps2-btn">Search</button>
+    </div>
+    <div id="kbDocs" class="scroll-box" style="font-size:0.55rem;margin-bottom:6px;"></div>
+    <div id="kbSearchResults" class="scroll-box" style="font-size:0.55rem;"></div>
+  </section>
+
+  <section class="panel" id="memoryPanel">
+    <h2>Memory Inspector</h2>
+    <small class="desc">Search, inspect and prune stored conversational memories.</small>
+    <div class="panel-toolbar">
+      <input id="memorySearchInput" placeholder="Search memories..." style="flex:1;min-width:180px;" />
+      <button id="memorySearchBtn" class="lps2-btn">Search</button>
+      <button id="memoryRefreshBtn" class="lps2-btn outline">Refresh</button>
+      <button id="memoryDeleteBtn" class="lps2-btn danger" disabled>Delete Selected</button>
+    </div>
+    <div id="memoryStats" style="font-size:0.55rem;opacity:0.8;margin-bottom:6px;"></div>
+    <div id="memoryList" class="scroll-box" style="max-height:240px;font-size:0.55rem;line-height:1.3;"></div>
+    <div style="margin-top:6px;font-size:0.55rem;opacity:0.75;">Legend: ★ summary, ⚠ suspicious, 🔒 PII redacted</div>
+  </section>
+
+  <section class="panel" id="quarantinePanel">
+    <h2>Quarantine & Audit</h2>
+    <small class="desc">Review suspicious ingests and audit security events.</small>
+    <div class="panel-toolbar">
+      <button id="quarantineRefreshBtn" class="lps2-btn outline">Refresh Quarantine</button>
+      <button id="auditRefreshBtn" class="lps2-btn outline">Audit Log</button>
+    </div>
+    <div id="quarantineList" class="scroll-box" style="max-height:180px;font-size:0.55rem;margin-bottom:6px;"></div>
+    <div id="auditLog" class="scroll-box" style="max-height:180px;font-size:0.5rem;display:none;"></div>
+  </section>
+</main>
+<div id="toastContainer"></div>
+<div id="confirmModal" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:4000;">
+  <div style="background:var(--panel-bg);border:1px solid var(--border-color);padding:18px 20px;border-radius:14px;max-width:420px;width:100%;font-size:0.8rem;">
+    <div id="confirmMessage" style="margin-bottom:16px;line-height:1.35;"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button id="confirmCancelBtn" class="copy-btn" style="background:#334155;">Cancel</button>
+      <button id="confirmOkBtn" class="copy-btn danger" style="background:#dc2626;color:#fff;">Delete</button>
+    </div>
+  </div>
+</div>
+<script src="/js/common.js"></script>
+<script>
+// Admin Console Logic using shared utilities
+// Logout wiring
+document.addEventListener('DOMContentLoaded', ()=>{
+  const lb=document.getElementById('logoutBtn');
+  if(lb){ lb.addEventListener('click', async ()=>{ try { const r=await fetch('/logout',{method:'POST'}); if(r.ok){ window.location.href='/login'; } else { alert('Logout failed'); } } catch(e){ alert('Logout failed'); } }); }
+});
+const { fetchWithCsrf, showToast, confirmAction, refreshAuth, state } = window.LPS2Common;
+let epProfilesData={profiles:{},active:null};let lastTest=null;let selectedProfile=null;
+const epName=document.getElementById('epName');const epEndpoint=document.getElementById('epEndpoint');const epPersist=document.getElementById('epPersist');const epTestBtn=document.getElementById('epTestBtn');const epSaveBtn=document.getElementById('epSaveBtn');const epActivateBtn=document.getElementById('epActivateBtn');const epDeleteBtn=document.getElementById('epDeleteBtn');const epRefreshBtn=document.getElementById('epRefreshBtn');const epProfilesList=document.getElementById('epProfilesList');const epTestStatus=document.getElementById('epTestStatus');
+const endpointBadge=document.getElementById('activeEndpointBadge');
+function updateButtons(){const nameFilled=epName.value.trim().length>0;const endpointFilled=epEndpoint.value.trim().length>0;const testOk=lastTest&&lastTest.ok&&lastTest.endpoint===epEndpoint.value.trim();epSaveBtn.disabled=!(nameFilled&&endpointFilled&&testOk);epActivateBtn.disabled=!selectedProfile||selectedProfile===epProfilesData.active;epDeleteBtn.disabled=!selectedProfile||selectedProfile===epProfilesData.active;}
+function renderProfiles(){if(!epProfilesList)return;const names=Object.keys(epProfilesData.profiles).sort();if(!names.length){epProfilesList.innerHTML='<em>No profiles</em>';return;}let html='<table><tr><th>Profile</th><th>Endpoint</th><th>Last Test</th></tr>';for(const n of names){const p=epProfilesData.profiles[n];const lt=p.last_test||{};const ok=lt.ok;const badge=ok?'<span class="status-ok">✔</span>':(lt.error?`<span class='status-bad' title='${lt.error}'>✖</span>`:'');const when=lt.checked_at? new Date(lt.checked_at*1000).toLocaleTimeString():'';html+=`<tr data-prof='${n}' style='cursor:pointer;${selectedProfile===n?'background:rgba(37,99,235,0.25);':''}'><td>${n}${epProfilesData.active===n?' <strong>(active)</strong>':''}</td><td style='font-family:monospace;'>${p.endpoint}</td><td>${badge} ${lt.latency_ms?lt.latency_ms+'ms':''} ${lt.model? '('+lt.model+')':''} ${when}</td></tr>`;}html+='</table>';epProfilesList.innerHTML=html;updateButtons();}
+epProfilesList?.addEventListener('click',e=>{const tr=e.target.closest('tr[data-prof]');if(!tr)return;selectedProfile=tr.getAttribute('data-prof');const prof=epProfilesData.profiles[selectedProfile];epName.value=selectedProfile;epEndpoint.value=prof.endpoint;renderProfiles();});
+['input'].forEach(ev=>{epName?.addEventListener(ev,updateButtons);epEndpoint?.addEventListener(ev,()=>{lastTest=null;epTestStatus.textContent='';updateButtons();});});
+async function fetchProfiles(){try{const r=await fetchWithCsrf('/admin/llm-endpoints/profiles');if(!r.ok){epProfilesList.innerHTML='<em>Error loading</em>';return;}epProfilesData=await r.json();renderProfiles();}catch(e){epProfilesList.innerHTML='<em>Load failed</em>';}}
+async function testEndpoint(){const endpoint=epEndpoint.value.trim();if(!endpoint)return;epTestStatus.textContent='Testing...';lastTest=null;try{const r=await fetchWithCsrf('/admin/llm-endpoints/profiles/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({endpoint})},{unsafe:true});let data={};try{data=await r.json();}catch(_){ }if(!r.ok){epTestStatus.innerHTML=`<span class='status-bad'>Fail: ${data.error||r.status}</span>`;showToast('Endpoint test failed','error');}else{lastTest=data;epTestStatus.innerHTML=`<span class='status-ok'>OK ${data.latency_ms||'?'}ms ${data.model? '('+data.model+')':''}</span>`;showToast('Endpoint reachable','success');}}catch(e){epTestStatus.innerHTML='<span class="status-bad">Error</span>';}updateButtons();}
+async function saveProfile(){const name=epName.value.trim();const endpoint=epEndpoint.value.trim();if(!name||!endpoint)return;epSaveBtn.disabled=true;epSaveBtn.textContent='Saving...';try{const r=await fetchWithCsrf('/admin/llm-endpoints/profiles',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,endpoint,persist:epPersist.checked})},{unsafe:true});const data=await r.json().catch(()=>({}));if(!r.ok){showToast('Save failed','error');}else{showToast('Profile saved','success');selectedProfile=name;lastTest=data.test;fetchProfiles();}}finally{epSaveBtn.textContent='Save/Update';updateButtons();}}
+async function activateProfile(){if(!selectedProfile)return;epActivateBtn.disabled=true;epActivateBtn.textContent='Activating...';try{const r=await fetchWithCsrf('/admin/llm-endpoints/profiles/activate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:selectedProfile,persist:epPersist.checked})},{unsafe:true});const data=await r.json().catch(()=>({}));if(!r.ok){showToast('Activate failed','error');}else{showToast('Activated','success');fetchProfiles();loadActiveEndpoint();}}finally{epActivateBtn.textContent='Activate';updateButtons();}}
+async function deleteProfile(){if(!selectedProfile)return;const ok=await confirmAction('Delete profile '+selectedProfile+'?');if(!ok)return;epDeleteBtn.disabled=true;epDeleteBtn.textContent='Deleting...';try{const r=await fetchWithCsrf('/admin/llm-endpoints/profiles/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:selectedProfile,persist:epPersist.checked})},{unsafe:true});const data=await r.json().catch(()=>({}));if(!r.ok){showToast('Delete failed','error');}else{showToast('Profile deleted','success');if(selectedProfile===epName.value.trim()){selectedProfile=null;epName.value='';epEndpoint.value='';lastTest=null;}fetchProfiles();}}finally{epDeleteBtn.textContent='Delete';updateButtons();}}
+epTestBtn?.addEventListener('click',testEndpoint);epSaveBtn?.addEventListener('click',saveProfile);epRefreshBtn?.addEventListener('click',fetchProfiles);epActivateBtn?.addEventListener('click',activateProfile);epDeleteBtn?.addEventListener('click',deleteProfile);
+
+// Knowledge Base Logic
+const kbFile=document.getElementById('kbFile');const kbOcr=document.getElementById('kbOcr');const kbIngestFileBtn=document.getElementById('kbIngestFileBtn');const kbIngestTextOpenBtn=document.getElementById('kbIngestTextOpenBtn');const kbIngestTextArea=document.getElementById('kbIngestTextArea');const kbText=document.getElementById('kbText');const kbSource=document.getElementById('kbSource');const kbIngestTextBtn=document.getElementById('kbIngestTextBtn');const kbIngestTextCancel=document.getElementById('kbIngestTextCancel');const kbListBtn=document.getElementById('kbListBtn');const kbDeleteBtn=document.getElementById('kbDeleteBtn');const kbSearchInput=document.getElementById('kbSearchInput');const kbSearchBtn=document.getElementById('kbSearchBtn');const kbDocs=document.getElementById('kbDocs');const kbSearchResults=document.getElementById('kbSearchResults');
+kbIngestTextOpenBtn.addEventListener('click',()=>{kbIngestTextArea.style.display='block';kbText.focus();});kbIngestTextCancel.addEventListener('click',()=>{kbIngestTextArea.style.display='none';kbText.value='';kbSource.value='';});
+async function kbListDocs(){try{const r=await fetch('/kb/documents');const data=await r.json();if(!data.enabled){kbDocs.innerHTML='<em>KB disabled</em>';return;}if(!Array.isArray(data.documents)||!data.documents.length){kbDocs.innerHTML='<em>No documents</em>';return;}let html='<table><tr><th><input type="checkbox" id="kbSelectAll"/></th><th>Doc</th><th>Source</th><th>Chunks</th></tr>';for(const d of data.documents){html+=`<tr><td><input type='checkbox' data-docid='${d.doc_id}'/></td><td style='font-family:monospace;'>${d.doc_id.substring(0,8)}</td><td>${d.source}</td><td>${d.chunks}</td></tr>`;}html+='</table>';kbDocs.innerHTML=html;initKBSelection();}catch(e){kbDocs.innerHTML='<em>Error</em>';}}
+async function kbIngestFile(){const f=kbFile.files[0];if(!f)return;const fd=new FormData();fd.append('file',f);if(kbOcr.checked)fd.append('ocr','1');kbIngestFileBtn.disabled=true;const r=await fetchWithCsrf('/kb/ingest',{method:'POST',body:fd},{unsafe:true});let d={};try{d=await r.json();}catch(_){ }if(!r.ok){showToast('Ingest failed','error');}else{showToast('File ingested','success');kbFile.value='';kbOcr.checked=false;kbListDocs();}kbIngestFileBtn.disabled=false;}
+async function kbIngestText(){const txt=kbText.value.trim();if(!txt)return;const source=kbSource.value.trim()||'inline';const r=await fetchWithCsrf('/kb/ingest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:txt,source})},{unsafe:true});const d=await r.json().catch(()=>({}));if(!r.ok){showToast('Text ingest failed','error');}else{showToast('Text ingested','success');kbText.value='';kbSource.value='';kbIngestTextArea.style.display='none';kbListDocs();}}
+async function kbSearch(){const q=kbSearchInput.value.trim();if(!q){kbSearchResults.innerHTML='';return;}const r=await fetch('/kb/search?q='+encodeURIComponent(q)+'&k=10');const d=await r.json();if(!d.enabled){kbSearchResults.innerHTML='<em>KB disabled</em>';return;}if(!Array.isArray(d.results)||!d.results.length){kbSearchResults.innerHTML='<em>No matches</em>';return;}let html='<table><tr><th>Score</th><th>Source</th><th>Preview</th></tr>';for(const it of d.results){html+=`<tr><td>${it.score.toFixed(3)}</td><td>${it.source}</td><td>${it.preview}</td></tr>`;}html+='</table>';kbSearchResults.innerHTML=html;}
+async function kbDeleteSelected(){const checks=kbDocs.querySelectorAll('input[type=checkbox][data-docid]:checked');const ids=Array.from(checks).map(c=>c.getAttribute('data-docid'));if(!ids.length){showToast('No docs selected','warn');return;}const ok=await confirmAction('Delete '+ids.length+' document(s)?');if(!ok)return;const r=await fetchWithCsrf('/kb/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({doc_ids:ids})},{unsafe:true});const d=await r.json().catch(()=>({}));if(!r.ok){showToast('Delete failed','error');}else{showToast('Deleted','success');kbListDocs();}}
+function initKBSelection(){const selectAll=document.getElementById('kbSelectAll');if(!selectAll)return;const update=()=>{const any=kbDocs.querySelectorAll('input[type=checkbox][data-docid]:checked').length>0;kbDeleteBtn.disabled=!any;};selectAll.addEventListener('change',()=>{kbDocs.querySelectorAll('input[type=checkbox][data-docid]').forEach(cb=>cb.checked=selectAll.checked);update();});kbDocs.addEventListener('change',e=>{if(e.target&&e.target.matches('input[type=checkbox][data-docid]'))update();});update();}
+kbIngestFileBtn.addEventListener('click',kbIngestFile);kbIngestTextBtn.addEventListener('click',kbIngestText);kbListBtn.addEventListener('click',kbListDocs);kbSearchBtn.addEventListener('click',kbSearch);kbDeleteBtn.addEventListener('click',kbDeleteSelected);kbSearchInput.addEventListener('keydown',e=>{if(e.key==='Enter')kbSearch();});
+
+// Memory Logic
+const memorySearchInput=document.getElementById('memorySearchInput');const memorySearchBtn=document.getElementById('memorySearchBtn');const memoryRefreshBtn=document.getElementById('memoryRefreshBtn');const memoryDeleteBtn=document.getElementById('memoryDeleteBtn');const memoryList=document.getElementById('memoryList');const memoryStats=document.getElementById('memoryStats');let lastMemoryUsed=[];
+async function loadRecentMemories(){const r=await fetch('/memory/list?limit=150');const d=await r.json();if(!d.enabled){memoryList.innerHTML='<em>Memory disabled</em>';return;}memoryStats.textContent='Total: '+d.count;renderMemoryList(d.memories);}function renderMemoryList(mems){if(!Array.isArray(mems)||!mems.length){memoryList.innerHTML='<em>No memories</em>';return;}const showScore=mems.some(m=>typeof m.score!=='undefined');let html='<table><tr><th><input type="checkbox" id="memSelectAll"/></th><th>ID</th>'+(showScore?'<th>Score</th>':'')+'<th>Text / Flags</th></tr>';for(const m of mems){const used=lastMemoryUsed.includes(m.id);const summary=m.is_summary;const suspicious=m.suspicious;const hasPii=m.pii_redacted&&Object.keys(m.pii_redacted).length;let flags='';if(summary)flags+='★ ';if(suspicious)flags+='⚠ ';if(hasPii)flags+='🔒 ';let rowStyle='';if(summary)rowStyle+='background:rgba(37,99,235,0.15);';if(used)rowStyle+='outline:1px solid #16a34a;';html+=`<tr style='${rowStyle}'><td><input type='checkbox' data-memid='${m.id}'/></td><td style='font-family:monospace;'>${m.id.substring(0,8)}${summary?'★':''}</td>`+(showScore?`<td>${typeof m.score!=='undefined'?(m.score.toFixed?m.score.toFixed(3):m.score):''}</td>`:'')+`<td>${m.text} <span style='opacity:.6;'>${flags}</span></td></tr>`;}html+='</table>';memoryList.innerHTML=html;initMemorySelection();}
+function initMemorySelection(){const selectAll=document.getElementById('memSelectAll');if(!selectAll)return;const update=()=>{const any=memoryList.querySelectorAll('input[type=checkbox][data-memid]:checked').length>0;memoryDeleteBtn.disabled=!any;};selectAll.addEventListener('change',()=>{memoryList.querySelectorAll('input[type=checkbox][data-memid]').forEach(cb=>cb.checked=selectAll.checked);update();});memoryList.addEventListener('change',e=>{if(e.target&&e.target.matches('input[type=checkbox][data-memid]'))update();});update();}
+async function searchMemories(){const q=memorySearchInput.value.trim();if(!q){loadRecentMemories();return;}const r=await fetch('/memory/search?q='+encodeURIComponent(q)+'&k=50');const d=await r.json();if(!d.enabled){memoryList.innerHTML='<em>Memory disabled</em>';return;}const results=d.results.map(r=>({id:r.id,text:r.text.slice(0,160)+(r.text.length>160?'…':''),is_summary:false,score:r.score}));renderMemoryList(results);}async function deleteSelectedMemories(){const ids=Array.from(memoryList.querySelectorAll('input[data-memid]:checked')).map(cb=>cb.getAttribute('data-memid'));if(!ids.length){showToast('No memories selected','warn');return;}const ok=await confirmAction('Delete '+ids.length+' memories?');if(!ok)return;const r=await fetchWithCsrf('/memory/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids})},{unsafe:true});const d=await r.json().catch(()=>({}));if(!r.ok){showToast('Delete failed','error');}else{showToast('Deleted','success');loadRecentMemories();}}
+memorySearchBtn.addEventListener('click',searchMemories);memoryRefreshBtn.addEventListener('click',loadRecentMemories);memoryDeleteBtn.addEventListener('click',deleteSelectedMemories);memorySearchInput.addEventListener('keydown',e=>{if(e.key==='Enter')searchMemories();});
+
+// Quarantine & Audit
+const quarantineList=document.getElementById('quarantineList');const quarantineRefreshBtn=document.getElementById('quarantineRefreshBtn');const auditRefreshBtn=document.getElementById('auditRefreshBtn');const auditLog=document.getElementById('auditLog');
+async function loadQuarantine(){const r=await fetch('/kb/quarantine');const d=await r.json();if(!d.enabled){quarantineList.innerHTML='<em>Disabled</em>';return;}const recs=d.records; if(!Array.isArray(recs)||!recs.length){quarantineList.innerHTML='<em>No quarantined docs</em>';return;}let html='<table><tr><th>Doc</th><th>Susp idx</th><th>Chunks</th><th></th></tr>';for(const rec of recs){html+=`<tr><td style='font-family:monospace;'>${rec.doc_id.substring(0,8)}</td><td>${rec.suspicious_chunks.join(',')}</td><td>${rec.chunk_count}</td><td><button class='lps2-btn outline' data-approve='${rec.doc_id}' style='padding:4px 8px;'>Approve</button> <button class='lps2-btn danger' data-discard='${rec.doc_id}' style='padding:4px 8px;'>Discard</button></td></tr>`;}html+='</table>';quarantineList.innerHTML=html;}
+async function approveQuarantine(id){const ok=await confirmAction('Approve record '+id+'?',{confirmLabel:'Approve',destructive:false});if(!ok)return;const r=await fetchWithCsrf('/kb/quarantine/approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({doc_id:id})},{unsafe:true});if(r.ok){showToast('Approved','success');loadQuarantine();}else showToast('Approve failed','error');}
+async function discardQuarantine(id){const ok=await confirmAction('Discard record '+id+'?');if(!ok)return;const r=await fetchWithCsrf('/kb/quarantine/discard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({doc_id:id})},{unsafe:true});if(r.ok){showToast('Discarded','success');loadQuarantine();}else showToast('Discard failed','error');}
+quarantineList.addEventListener('click',e=>{const a=e.target.closest('[data-approve]');const d=e.target.closest('[data-discard]');if(a)approveQuarantine(a.getAttribute('data-approve')); if(d)discardQuarantine(d.getAttribute('data-discard'));});
+async function loadAudit(){if(auditLog.style.display==='none'){auditLog.style.display='block';}else{auditLog.style.display='none';return;}auditLog.innerHTML='<em>Loading...</em>';const r=await fetch('/security/audit?limit=150');const d=await r.json();const events=d.events||[];if(!events.length){auditLog.innerHTML='<em>No events</em>';return;}let html='<table><tr><th>Time</th><th>Event</th><th>Fields</th></tr>';for(const ev of events.reverse()){const ts=new Date(ev.ts*1000).toLocaleTimeString();const { event, ts:_ts, ...rest } = ev;html+=`<tr><td>${ts}</td><td>${event}</td><td style='white-space:nowrap;max-width:320px;overflow:hidden;text-overflow:ellipsis;'>${escapeHtml(JSON.stringify(rest))}</td></tr>`;}html+='</table>';auditLog.innerHTML=html;}
+function escapeHtml(t){return t.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));}
+quarantineRefreshBtn.addEventListener('click',loadQuarantine);auditRefreshBtn.addEventListener('click',loadAudit);
+
+async function loadActiveEndpoint(){try{const r=await fetch('/model');if(!r.ok)return;const d=await r.json();if(d.llm_endpoint){endpointBadge.style.display='inline-flex';endpointBadge.textContent='Active: '+d.llm_endpoint.replace(/\/$/,'');}}catch(_){}}
+
+// Theme Toggle
+const themeToggle = document.getElementById('themeToggle');
+function applyTheme(mode) {
+    if (mode === 'dark') {
+        document.body.classList.add('dark-mode');
+        themeToggle.textContent = '☀️ Light';
+    } else {
+        document.body.classList.remove('dark-mode');
+        themeToggle.textContent = '🌙 Dark';
+    }
+}
+
+// Get theme from localStorage (shared with chat page)
+const storedTheme = localStorage.getItem('lps2Theme') || 'light';
+applyTheme(storedTheme);
+
+// Toggle theme when button is clicked
+themeToggle.addEventListener('click', () => {
+    const current = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
+    const next = current === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('lps2Theme', next);
+    applyTheme(next);
+});
+
+// Initialize
+(async function init(){await refreshAuth();const badge=document.getElementById('adminUserBadge');if(state.USER){badge.textContent=state.USER+(state.IS_ADMIN?' · admin':'');}fetchProfiles();kbListDocs();loadRecentMemories();loadQuarantine();loadActiveEndpoint();})();
+</script>
+</body>
+</html>
+</script>
+</body>
+</html>

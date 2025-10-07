@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Login - LPS2</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+:root {
+  --bg: #f1f5f9;
+  --panel: #ffffff;
+  --border: #d0d7e2;
+  --accent-start:#2563eb;
+  --accent-end:#0d62ff;
+  --danger:#dc2626;
+  --text:#1e293b;
+}
+body { font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; background:var(--bg); margin:0; color:var(--text); display:flex; align-items:center; justify-content:center; min-height:100vh; }
+.login-card { width:100%; max-width:380px; background:var(--panel); border:1px solid var(--border); border-radius:18px; padding:32px 30px 26px; box-shadow:0 12px 40px rgba(0,0,0,0.08); position:relative; }
+.login-card h1 { margin:0 0 4px; font-size:1.4rem; letter-spacing:0.5px; }
+.login-card p.sub { margin:0 0 20px; font-size:0.78rem; opacity:0.75; }
+.field { display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
+.field label { font-size:0.7rem; font-weight:600; letter-spacing:0.5px; }
+.field input { padding:10px 12px; border:1.5px solid var(--border); border-radius:10px; font-size:0.85rem; background:#f8fafc; transition:border-color .2s, background .2s; }
+.field input:focus { outline:none; border-color:var(--accent-start); background:#fff; }
+button.primary { width:100%; background:linear-gradient(90deg,var(--accent-start),var(--accent-end)); color:#fff; border:none; padding:12px 20px; border-radius:10px; font-size:0.9rem; font-weight:600; letter-spacing:0.5px; cursor:pointer; box-shadow:0 4px 18px rgba(0,0,0,0.18); }
+button.primary:disabled { background:#9db4d1; cursor:not-allowed; }
+.error { background:#fee2e2; color:#991b1b; padding:8px 10px; border-radius:8px; font-size:0.7rem; margin-bottom:16px; display:none; }
+.success { background:#dcfce7; color:#166534; padding:8px 10px; border-radius:8px; font-size:0.7rem; margin-top:12px; display:none; }
+footer { margin-top:24px; font-size:0.6rem; opacity:0.6; text-align:center; }
+.dark-toggle { position:absolute; top:10px; right:12px; background:#f1f5f9; border:1px solid var(--border); font-size:0.6rem; padding:4px 10px; border-radius:20px; cursor:pointer; }
+body.dark { --bg:#0f172a; --panel:#1e293b; --border:#334155; --text:#e2e8f0; }
+body.dark .login-card { box-shadow:0 12px 40px rgba(0,0,0,0.5); }
+body.dark .field input { background:#1e293b; color:#e2e8f0; }
+body.dark .dark-toggle { background:#1e293b; color:#e2e8f0; }
+</style>
+</head>
+<body>
+  <div class="login-card">
+    <button id="themeSwitch" class="dark-toggle">Dark</button>
+  <pre style="line-height:1.2;text-align:center;font-weight:bold;font-family:monospace;margin:10px 0;font-size:0.8em;">
+  ██╗     ██████╗ ███████╗██████╗ 
+  ██║     ██╔══██╗██╔════╝╚════██╗
+  ██║     ██████╔╝███████╗ █████╔╝
+  ██║     ██╔═══╝ ╚════██║██╔═══╝ 
+  ███████╗██║     ███████║███████╗
+  ╚══════╝╚═╝     ╚══════╝╚══════╝
+</pre>
+  <div class="terminal-text" style="background-color: rgba(0,0,0,0.7); padding: 4px 0; margin: 5px 0 10px; width: 100%; font-size: 0.8em; text-align: center; border-radius: 3px;">
+    <span id="blinkingText" style="font-family: monospace; color: #0f0; text-shadow: 0 0 5px #0f0, 0 0 10px #0f0;">Fight the future, build and deploy your own open-source AI stack!</span>
+  </div>
+  <script>
+    (function() {
+        const blinkingText = document.getElementById('blinkingText');
+        let intensity = 1;
+        let direction = -1;
+        let lastTime = 0;
+        
+        function blinkText(timestamp) {
+            if (timestamp - lastTime > 50) { // Control blink speed
+                lastTime = timestamp;
+                intensity += direction * 0.03;
+                
+                // Reverse direction at limits
+                if (intensity <= 0.4) {
+                    intensity = 0.4;
+                    direction = 1;
+                } else if (intensity >= 1) {
+                    intensity = 1;
+                    direction = -1;
+                }
+                
+                // Update glow intensity
+                blinkingText.style.opacity = intensity;
+                blinkingText.style.textShadow = `0 0 ${3 + intensity * 5}px #0f0, 0 0 ${5 + intensity * 8}px #0f0`;
+            }
+            requestAnimationFrame(blinkText);
+        }
+        requestAnimationFrame(blinkText);
+    })();
+  </script>
+  <p class="sub">(Local, Private, &amp; Secure Small Language Model Server)</p>
+    <div id="errorBox" class="error"></div>
+    <form id="loginForm">
+      <div class="field">
+        <label for="username">USERNAME</label>
+        <input type="text" id="username" autocomplete="username" required />
+      </div>
+      <div class="field">
+        <label for="password">PASSWORD</label>
+        <input type="password" id="password" autocomplete="current-password" required />
+      </div>
+      <button type="submit" id="loginBtn" class="primary">Sign In</button>
+    </form>
+    <div id="successBox" class="success">Login successful. Redirecting…</div>
+    <footer>Local Auth Demo • Replace for production.
+      <div style="margin-top:6px;">Default user: <code>admin</code></div>
+    </footer>
+  </div>
+<script>
+const form = document.getElementById('loginForm');
+const btn = document.getElementById('loginBtn');
+const err = document.getElementById('errorBox');
+const ok = document.getElementById('successBox');
+const themeSwitch = document.getElementById('themeSwitch');
+if (localStorage.getItem('loginTheme')==='dark'){ document.body.classList.add('dark'); themeSwitch.textContent='Light'; }
+
+themeSwitch.addEventListener('click', ()=>{ const dark = document.body.classList.toggle('dark'); localStorage.setItem('loginTheme', dark?'dark':'light'); themeSwitch.textContent = dark? 'Light':'Dark'; });
+
+form.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  err.style.display='none'; ok.style.display='none';
+  btn.disabled=true; btn.textContent='Signing in…';
+  try {
+    const res = await fetch('/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ username: username.value.trim(), password: password.value }) });
+    let data={}; try { data = await res.json(); } catch(_) {}
+    if(!res.ok){ throw new Error(data.error || ('HTTP '+res.status)); }
+    ok.style.display='block';
+    setTimeout(()=>{ window.location.href='/'; }, 600);
+  } catch(ex) {
+    err.textContent = ex.message === 'invalid_credentials' ? 'Invalid username or password.' : ('Login failed: '+ex.message);
+    err.style.display='block';
+  } finally {
+    btn.disabled=false; btn.textContent='Sign In';
+  }
+});
+</script>
+</body>
+</html>

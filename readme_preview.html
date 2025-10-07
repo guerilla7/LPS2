@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>GitHub README Preview</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <style>
+        :root {
+            --color-canvas-default: #ffffff;
+            --color-canvas-subtle: #f6f8fa;
+            --color-border-default: #d0d7de;
+            --color-border-muted: hsla(210,18%,87%,1);
+            --color-neutral-muted: rgba(175,184,193,0.2);
+            --color-accent-fg: #0969da;
+            --color-fg-default: #24292f;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --color-canvas-default: #0d1117;
+                --color-canvas-subtle: #161b22;
+                --color-border-default: #30363d;
+                --color-border-muted: #21262d;
+                --color-neutral-muted: rgba(110,118,129,0.4);
+                --color-accent-fg: #58a6ff;
+                --color-fg-default: #c9d1d9;
+            }
+            .hljs {
+                background: var(--color-canvas-subtle);
+                color: var(--color-fg-default);
+            }
+        }
+        
+        body {
+            background-color: var(--color-canvas-default);
+            color: var(--color-fg-default);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+        
+        .markdown-body {
+            box-sizing: border-box;
+            min-width: 200px;
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 45px;
+            background-color: var(--color-canvas-default);
+            color: var(--color-fg-default);
+        }
+        @media (max-width: 767px) {
+            .markdown-body {
+                padding: 15px;
+            }
+        }
+        
+        .header-container {
+            border-bottom: 1px solid var(--color-border-muted);
+            padding-bottom: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .badge-container {
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        
+        .badge {
+            display: inline-block;
+            margin-right: 5px;
+        }
+        
+        pre {
+            background-color: var(--color-canvas-subtle);
+            border-radius: 6px;
+            padding: 16px;
+            overflow: auto;
+            line-height: 1.45;
+            border: 1px solid var(--color-border-muted);
+        }
+        
+        code {
+            background-color: var(--color-neutral-muted);
+            border-radius: 6px;
+            padding: 0.2em 0.4em;
+            font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+            font-size: 85%;
+        }
+        
+        pre code {
+            background-color: transparent;
+            padding: 0;
+            border-radius: 0;
+        }
+        
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 16px;
+            display: block;
+            overflow-x: auto;
+        }
+        
+        table th, table td {
+            padding: 6px 13px;
+            border: 1px solid var(--color-border-default);
+        }
+        
+        table tr:nth-child(2n) {
+            background-color: var(--color-canvas-subtle);
+        }
+        
+        a {
+            color: var(--color-accent-fg);
+            text-decoration: none;
+        }
+        
+        a:hover {
+            text-decoration: underline;
+        }
+        
+        img {
+            max-width: 100%;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            margin-top: 24px;
+            margin-bottom: 16px;
+            font-weight: 600;
+            line-height: 1.25;
+        }
+        
+        h1 {
+            padding-bottom: 0.3em;
+            font-size: 2em;
+        }
+        
+        h2 {
+            padding-bottom: 0.3em;
+            font-size: 1.5em;
+        }
+        
+        h3 {
+            font-size: 1.25em;
+        }
+        
+        blockquote {
+            padding: 0 1em;
+            color: #57606a;
+            border-left: 0.25em solid #d0d7de;
+            margin: 0 0 16px 0;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            blockquote {
+                color: #8b949e;
+                border-left-color: #30363d;
+            }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.1/purify.min.js"></script>
+</head>
+<body>
+    <div class="markdown-body">
+        <div id="content"></div>
+        <footer style="margin-top: 30px; text-align: center; font-size: 12px; color: #777;">
+            <p>Preview rendered with GitHub-style Markdown</p>
+        </footer>
+    </div>
+    <script>
+        // Configure marked options to better match GitHub markdown
+        marked.setOptions({
+            gfm: true,
+            breaks: true,
+            pedantic: false,
+            sanitize: false,
+            smartLists: true,
+            smartypants: true,
+            xhtml: false,
+            highlight: function(code, lang) {
+                try {
+                    if (lang && hljs.getLanguage(lang)) {
+                        return hljs.highlight(code, { language: lang }).value;
+                    } else {
+                        return hljs.highlightAuto(code).value;
+                    }
+                } catch (e) {
+                    console.error(e);
+                    return code;
+                }
+            }
+        });
+        
+        // Fetch the README.md content
+        fetch('README.md')
+            .then(response => response.text())
+            .then(text => {
+                // Convert markdown to HTML and sanitize
+                const rawHtml = marked.parse(text);
+                const cleanHtml = DOMPurify.sanitize(rawHtml);
+                document.getElementById('content').innerHTML = cleanHtml;
+                
+                // Apply syntax highlighting to all code blocks
+                document.querySelectorAll('pre code').forEach(block => {
+                    hljs.highlightElement(block);
+                });
+                
+                // Handle the header and badges section
+                const firstH1 = document.querySelector('h1');
+                if (firstH1) {
+                    // Create a header container
+                    const headerContainer = document.createElement('div');
+                    headerContainer.className = 'header-container';
+                    
+                    // Find all badges (links with img.shields.io in URL)
+                    const badgeLinks = Array.from(document.querySelectorAll('a')).filter(link => 
+                        link.href.includes('img.shields.io') || 
+                        link.href.includes('badge') ||
+                        (link.textContent && link.textContent.match(/license|python|flask|docker|author/i))
+                    );
+                    
+                    // Only proceed if we found badges
+                    if (badgeLinks.length > 0) {
+                        const badgeContainer = document.createElement('div');
+                        badgeContainer.className = 'badge-container';
+                        
+                        badgeLinks.forEach(link => {
+                            // If the link has an img child, it's already formatted properly
+                            const existingImg = link.querySelector('img');
+                            if (existingImg) {
+                                existingImg.className = 'badge';
+                                badgeContainer.appendChild(link);
+                                return;
+                            }
+                            
+                            // Otherwise, format it as a badge
+                            const badgeURL = link.href.includes('img.shields.io') ? 
+                                link.href : 
+                                `https://img.shields.io/badge/${link.textContent.replace(/[:\s]/g, '-')}-yellow.svg`;
+                            
+                            const img = document.createElement('img');
+                            img.src = badgeURL;
+                            img.alt = link.textContent;
+                            img.className = 'badge';
+                            
+                            // Keep the link but replace its content with the image
+                            link.innerHTML = '';
+                            link.appendChild(img);
+                            
+                            // Move the badge links into the container
+                            badgeContainer.appendChild(link);
+                        });
+                        
+                        // Add first H1 to header container, then add the badge container
+                        headerContainer.appendChild(firstH1.cloneNode(true));
+                        headerContainer.appendChild(badgeContainer);
+                        
+                        // Replace the original h1 with our new header container
+                        firstH1.parentNode.replaceChild(headerContainer, firstH1);
+                    }
+                    
+                    // Clean up any empty paragraphs that may have been created
+                    const emptyParas = document.querySelectorAll('p:empty');
+                    emptyParas.forEach(p => p.remove());
+                }
+                
+                // Add emojis to section headings
+                const sectionEmojiMap = {
+                    'introduction': '📚',
+                    'project structure': '🗂️',
+                    'quick start': '🚀',
+                    'basic usage': '📝',
+                    'generation & inference': '⚙️',
+                    'persistent configuration': '💾',
+                    'feature overview': '✨',
+                    'enabling tls': '🔒',
+                    'dependencies': '📦',
+                    'environment variables': '🔧',
+                    'contributing': '🤝',
+                    'roadmap': '🗺️',
+                    'about the author': '👨‍💻',
+                    'default credentials': '🔑',
+                    'security headers': '🛡️',
+                    'renewal monitoring': '📊',
+                    'automatic let\'s encrypt': '🔐',
+                    'quick start (development)': '🚀',
+                    'quick start (self-signed': '🔒',
+                };
+                
+                // Function to add emoji based on heading text
+                function addEmojiToHeading(heading) {
+                    const text = heading.textContent.toLowerCase();
+                    let emoji = null;
+                    
+                    // Check for exact matches first
+                    for (const [key, value] of Object.entries(sectionEmojiMap)) {
+                        if (text.includes(key)) {
+                            emoji = value;
+                            break;
+                        }
+                    }
+                    
+                    // If no match, use default emojis based on heading level
+                    if (!emoji) {
+                        if (heading.tagName === 'H1') emoji = '🔥';
+                        else if (heading.tagName === 'H2') emoji = '📋';
+                        else if (heading.tagName === 'H3') emoji = '📌';
+                        else emoji = '🔹';
+                    }
+                    
+                    // Add the emoji at the beginning
+                    heading.innerHTML = `${emoji} ${heading.innerHTML}`;
+                }
+                
+                // Apply emojis to all headings (h2, h3, h4)
+                document.querySelectorAll('h2, h3, h4').forEach(addEmojiToHeading);
+            });
+    </script>
+</body>
+</html>
