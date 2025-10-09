@@ -107,17 +107,64 @@ def login_page():
 
 @app.route('/login', methods=['POST'])
 def login_post():
-    data = request.json if request.is_json else request.form
-    username = (data.get('username') or '').strip()
-    password = data.get('password') or ''
-    if not username or not password:
-        return jsonify({'error': 'missing_credentials'}), 400
-    stored = USERS.get(username)
-    if not stored or not check_password_hash(stored, password):
-        return jsonify({'error': 'invalid_credentials'}), 401
-    session['user'] = username
-    # Generate CSRF token on login
-    session['csrf_token'] = secrets.token_urlsafe(32)
+    try:
+        # Import here to avoid circular imports
+        from utils.schemas import LoginSchema
+        from utils.validation import validate_data
+        
+        # Get data from the appropriate source
+        data = request.json if request.is_json else request.form
+        
+        # Directly validate the data
+        is_valid, validated_data, errors = validate_data(data, LoginSchema)
+        
+        # Handle validation errors
+        if not is_valid:
+            return jsonify({
+                'error': 'validation_error',
+                'message': 'Invalid login credentials',
+                'details': errors
+            }), 400
+            
+        # Use validated data
+        username = validated_data['username'].strip()
+        password = validated_data['password']
+        
+        # Check credentials
+        stored = USERS.get(username)
+        if not stored or not check_password_hash(stored, password):
+            return jsonify({'error': 'invalid_credentials'}), 401
+        
+        session['user'] = username
+        # Generate CSRF token on login
+        session['csrf_token'] = secrets.token_urlsafe(32)
+    except ImportError:
+        # Fallback if validation module is not available
+        data = request.json if request.is_json else request.form
+        username = (data.get('username') or '').strip()
+        password = data.get('password') or ''
+        if not username or not password:
+            return jsonify({'error': 'missing_credentials'}), 400
+        stored = USERS.get(username)
+        if not stored or not check_password_hash(stored, password):
+            return jsonify({'error': 'invalid_credentials'}), 401
+        session['user'] = username
+        # Generate CSRF token on login
+        session['csrf_token'] = secrets.token_urlsafe(32)
+    except Exception as e:
+        # Log the error but continue with the original implementation
+        app.logger.error(f"Login validation error: {str(e)}")
+        data = request.json if request.is_json else request.form
+        username = (data.get('username') or '').strip()
+        password = data.get('password') or ''
+        if not username or not password:
+            return jsonify({'error': 'missing_credentials'}), 400
+        stored = USERS.get(username)
+        if not stored or not check_password_hash(stored, password):
+            return jsonify({'error': 'invalid_credentials'}), 401
+        session['user'] = username
+        # Generate CSRF token on login
+        session['csrf_token'] = secrets.token_urlsafe(32)
     return jsonify({'ok': True, 'user': username})
 
 @app.route('/logout', methods=['POST'])

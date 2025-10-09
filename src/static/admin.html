@@ -184,7 +184,7 @@
     </div>
   </div>
 </div>
-<script src="/js/common.js"></script>
+<script src="/static/js/common.js"></script>
 <script>
 // Admin Console Logic using shared utilities
 // Logout wiring
@@ -200,11 +200,208 @@ function updateButtons(){const nameFilled=epName.value.trim().length>0;const end
 function renderProfiles(){if(!epProfilesList)return;const names=Object.keys(epProfilesData.profiles).sort();if(!names.length){epProfilesList.innerHTML='<em>No profiles</em>';return;}let html='<table><tr><th>Profile</th><th>Endpoint</th><th>Last Test</th></tr>';for(const n of names){const p=epProfilesData.profiles[n];const lt=p.last_test||{};const ok=lt.ok;const badge=ok?'<span class="status-ok">✔</span>':(lt.error?`<span class='status-bad' title='${lt.error}'>✖</span>`:'');const when=lt.checked_at? new Date(lt.checked_at*1000).toLocaleTimeString():'';html+=`<tr data-prof='${n}' style='cursor:pointer;${selectedProfile===n?'background:rgba(37,99,235,0.25);':''}'><td>${n}${epProfilesData.active===n?' <strong>(active)</strong>':''}</td><td style='font-family:monospace;'>${p.endpoint}</td><td>${badge} ${lt.latency_ms?lt.latency_ms+'ms':''} ${lt.model? '('+lt.model+')':''} ${when}</td></tr>`;}html+='</table>';epProfilesList.innerHTML=html;updateButtons();}
 epProfilesList?.addEventListener('click',e=>{const tr=e.target.closest('tr[data-prof]');if(!tr)return;selectedProfile=tr.getAttribute('data-prof');const prof=epProfilesData.profiles[selectedProfile];epName.value=selectedProfile;epEndpoint.value=prof.endpoint;renderProfiles();});
 ['input'].forEach(ev=>{epName?.addEventListener(ev,updateButtons);epEndpoint?.addEventListener(ev,()=>{lastTest=null;epTestStatus.textContent='';updateButtons();});});
-async function fetchProfiles(){try{const r=await fetchWithCsrf('/admin/llm-endpoints/profiles');if(!r.ok){epProfilesList.innerHTML='<em>Error loading</em>';return;}epProfilesData=await r.json();renderProfiles();}catch(e){epProfilesList.innerHTML='<em>Load failed</em>';}}
-async function testEndpoint(){const endpoint=epEndpoint.value.trim();if(!endpoint)return;epTestStatus.textContent='Testing...';lastTest=null;try{const r=await fetchWithCsrf('/admin/llm-endpoints/profiles/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({endpoint})},{unsafe:true});let data={};try{data=await r.json();}catch(_){ }if(!r.ok){epTestStatus.innerHTML=`<span class='status-bad'>Fail: ${data.error||r.status}</span>`;showToast('Endpoint test failed','error');}else{lastTest=data;epTestStatus.innerHTML=`<span class='status-ok'>OK ${data.latency_ms||'?'}ms ${data.model? '('+data.model+')':''}</span>`;showToast('Endpoint reachable','success');}}catch(e){epTestStatus.innerHTML='<span class="status-bad">Error</span>';}updateButtons();}
-async function saveProfile(){const name=epName.value.trim();const endpoint=epEndpoint.value.trim();if(!name||!endpoint)return;epSaveBtn.disabled=true;epSaveBtn.textContent='Saving...';try{const r=await fetchWithCsrf('/admin/llm-endpoints/profiles',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,endpoint,persist:epPersist.checked})},{unsafe:true});const data=await r.json().catch(()=>({}));if(!r.ok){showToast('Save failed','error');}else{showToast('Profile saved','success');selectedProfile=name;lastTest=data.test;fetchProfiles();}}finally{epSaveBtn.textContent='Save/Update';updateButtons();}}
-async function activateProfile(){if(!selectedProfile)return;epActivateBtn.disabled=true;epActivateBtn.textContent='Activating...';try{const r=await fetchWithCsrf('/admin/llm-endpoints/profiles/activate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:selectedProfile,persist:epPersist.checked})},{unsafe:true});const data=await r.json().catch(()=>({}));if(!r.ok){showToast('Activate failed','error');}else{showToast('Activated','success');fetchProfiles();loadActiveEndpoint();}}finally{epActivateBtn.textContent='Activate';updateButtons();}}
-async function deleteProfile(){if(!selectedProfile)return;const ok=await confirmAction('Delete profile '+selectedProfile+'?');if(!ok)return;epDeleteBtn.disabled=true;epDeleteBtn.textContent='Deleting...';try{const r=await fetchWithCsrf('/admin/llm-endpoints/profiles/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:selectedProfile,persist:epPersist.checked})},{unsafe:true});const data=await r.json().catch(()=>({}));if(!r.ok){showToast('Delete failed','error');}else{showToast('Profile deleted','success');if(selectedProfile===epName.value.trim()){selectedProfile=null;epName.value='';epEndpoint.value='';lastTest=null;}fetchProfiles();}}finally{epDeleteBtn.textContent='Delete';updateButtons();}}
+async function fetchProfiles(){
+  try {
+    console.log("Fetching profiles");
+    
+    const r=await fetchWithCsrf('/admin/llm-endpoints/profiles');
+    
+    if(!r.ok){
+      console.error("Error loading profiles:", r.status);
+      epProfilesList.innerHTML='<em>Error loading ('+r.status+')</em>';
+      return;
+    }
+    
+    try {
+      epProfilesData=await r.json();
+      console.log("Profiles data:", epProfilesData);
+    } catch(e) {
+      console.error("Error parsing profiles:", e);
+      epProfilesList.innerHTML='<em>Parse error</em>';
+      return;
+    }
+    
+    renderProfiles();
+  } catch(e) {
+    console.error("Failed to load profiles:", e);
+    epProfilesList.innerHTML='<em>Load failed: '+e.message+'</em>';
+  }
+}
+async function testEndpoint(){
+  const endpoint=epEndpoint.value.trim();
+  if(!endpoint) return;
+  
+  epTestStatus.textContent='Testing...';
+  lastTest=null;
+  
+  try {
+    console.log("Testing endpoint:", endpoint);
+    
+    const r=await fetchWithCsrf('/admin/llm-endpoints/profiles/test',{
+      method:'POST',
+      body: JSON.stringify({endpoint})
+    }, {unsafe:true});
+    
+    let data={};
+    try {
+      data=await r.json();
+      console.log("Test endpoint response:", data);
+    } catch(e){ 
+      console.error("Error parsing response:", e);
+    }
+    
+    if(!r.ok){
+      epTestStatus.innerHTML=`<span class='status-bad'>Fail: ${data.error||r.status}</span>`;
+      showToast('Endpoint test failed','error');
+      console.error("Endpoint test failed:", data);
+    } else {
+      lastTest=data;
+      epTestStatus.innerHTML=`<span class='status-ok'>OK ${data.latency_ms||'?'}ms ${data.model? '('+data.model+')':''}</span>`;
+      showToast('Endpoint reachable','success');
+    }
+  } catch(e){
+    console.error("Error testing endpoint:", e);
+    epTestStatus.innerHTML=`<span class="status-bad">Error: ${e.message}</span>`;
+  }
+  
+  updateButtons();
+}
+async function saveProfile(){
+  const name=epName.value.trim();
+  const endpoint=epEndpoint.value.trim();
+  
+  if(!name||!endpoint) return;
+  
+  epSaveBtn.disabled=true;
+  epSaveBtn.textContent='Saving...';
+  
+  try {
+    console.log("Saving profile:", {name, endpoint, persist: epPersist.checked});
+    
+    const r=await fetchWithCsrf('/admin/llm-endpoints/profiles',{
+      method:'POST',
+      body: JSON.stringify({
+        name,
+        endpoint,
+        persist: epPersist.checked
+      })
+    }, {unsafe:true});
+    
+    let data = {};
+    try {
+      data=await r.json();
+      console.log("Save profile response:", data);
+    } catch(e) {
+      console.error("Error parsing response:", e);
+    }
+    
+    if(!r.ok){
+      console.error("Save failed:", data);
+      showToast('Save failed: ' + (data.error || r.status),'error');
+    } else {
+      showToast('Profile saved','success');
+      selectedProfile=name;
+      lastTest=data.test;
+      fetchProfiles();
+    }
+  } catch(e) {
+    console.error("Error saving profile:", e);
+    showToast('Save error: ' + e.message,'error');
+  } finally {
+    epSaveBtn.textContent='Save/Update';
+    updateButtons();
+  }
+}
+async function activateProfile(){
+  if(!selectedProfile) return;
+  
+  epActivateBtn.disabled=true;
+  epActivateBtn.textContent='Activating...';
+  
+  try {
+    console.log("Activating profile:", {name: selectedProfile, persist: epPersist.checked});
+    
+    const r=await fetchWithCsrf('/admin/llm-endpoints/profiles/activate',{
+      method:'POST',
+      body: JSON.stringify({
+        name: selectedProfile,
+        persist: epPersist.checked
+      })
+    }, {unsafe:true});
+    
+    let data = {};
+    try {
+      data=await r.json();
+      console.log("Activate profile response:", data);
+    } catch(e) {
+      console.error("Error parsing response:", e);
+    }
+    
+    if(!r.ok){
+      console.error("Activate failed:", data);
+      showToast('Activate failed: ' + (data.error || r.status),'error');
+    } else {
+      showToast('Activated','success');
+      fetchProfiles();
+      loadActiveEndpoint();
+    }
+  } catch(e) {
+    console.error("Error activating profile:", e);
+    showToast('Activation error: ' + e.message,'error');
+  } finally {
+    epActivateBtn.textContent='Activate';
+    updateButtons();
+  }
+}
+async function deleteProfile(){
+  if(!selectedProfile) return;
+  
+  const ok=await confirmAction('Delete profile '+selectedProfile+'?');
+  if(!ok) return;
+  
+  epDeleteBtn.disabled=true;
+  epDeleteBtn.textContent='Deleting...';
+  
+  try {
+    console.log("Deleting profile:", {name: selectedProfile, persist: epPersist.checked});
+    
+    const r=await fetchWithCsrf('/admin/llm-endpoints/profiles/delete',{
+      method:'POST',
+      body: JSON.stringify({
+        name: selectedProfile,
+        persist: epPersist.checked
+      })
+    }, {unsafe:true});
+    
+    let data = {};
+    try {
+      data=await r.json();
+      console.log("Delete profile response:", data);
+    } catch(e) {
+      console.error("Error parsing response:", e);
+    }
+    
+    if(!r.ok){
+      console.error("Delete failed:", data);
+      showToast('Delete failed: ' + (data.error || r.status),'error');
+    } else {
+      showToast('Profile deleted','success');
+      if(selectedProfile===epName.value.trim()){
+        selectedProfile=null;
+        epName.value='';
+        epEndpoint.value='';
+        lastTest=null;
+      }
+      fetchProfiles();
+    }
+  } catch(e) {
+    console.error("Error deleting profile:", e);
+    showToast('Delete error: ' + e.message,'error');
+  } finally {
+    epDeleteBtn.textContent='Delete';
+    updateButtons();
+  }
+}
 epTestBtn?.addEventListener('click',testEndpoint);epSaveBtn?.addEventListener('click',saveProfile);epRefreshBtn?.addEventListener('click',fetchProfiles);epActivateBtn?.addEventListener('click',activateProfile);epDeleteBtn?.addEventListener('click',deleteProfile);
 
 // Knowledge Base Logic
@@ -262,7 +459,53 @@ themeToggle.addEventListener('click', () => {
 });
 
 // Initialize
-(async function init(){await refreshAuth();const badge=document.getElementById('adminUserBadge');if(state.USER){badge.textContent=state.USER+(state.IS_ADMIN?' · admin':'');}fetchProfiles();kbListDocs();loadRecentMemories();loadQuarantine();loadActiveEndpoint();})();
+// Session debug function
+async function debugSession() {
+  console.log("--- DEBUG SESSION INFO ---");
+  console.log("Current auth state:", state);
+  
+  try {
+    const r = await fetch('/auth/status');
+    const d = await r.json();
+    console.log("Auth status response:", d);
+    
+    if (d.csrf_token !== state.CSRF_TOKEN) {
+      console.warn("CSRF token mismatch between local state and server!");
+      console.log("Local:", state.CSRF_TOKEN?.substring(0,10) + "...");
+      console.log("Server:", d.csrf_token?.substring(0,10) + "...");
+      
+      // Update our token if needed
+      if (d.csrf_token) {
+        state.CSRF_TOKEN = d.csrf_token;
+        console.log("Token updated from server");
+      }
+    }
+  } catch (e) {
+    console.error("Error debugging session:", e);
+  }
+}
+
+// Initialize everything
+(async function init(){
+  await refreshAuth();
+  const badge=document.getElementById('adminUserBadge');
+  if(state.USER){
+    badge.textContent=state.USER+(state.IS_ADMIN?' · admin':'');
+  }
+  
+  // Debug session first
+  await debugSession();
+  
+  // Then load all data
+  fetchProfiles();
+  kbListDocs();
+  loadRecentMemories();
+  loadQuarantine();
+  loadActiveEndpoint();
+  
+  // Auto-refresh auth status every 5 minutes to keep CSRF token fresh
+  setInterval(refreshAuth, 5 * 60 * 1000);
+})();
 </script>
 </body>
 </html>

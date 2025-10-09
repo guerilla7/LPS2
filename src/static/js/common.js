@@ -4,8 +4,72 @@
   async function refreshAuth(){
     try { const r = await fetch('/auth/status'); if(!r.ok) return state; const j = await r.json(); state.AUTH_SESSION=!!j.authenticated; state.CSRF_TOKEN=j.csrf_token||null; state.USER=j.user||null; state.IS_ADMIN=!!j.is_admin; return state; } catch(e){ return state; }
   }
-  function authHeaders(base={}, {unsafe=false}={}){ const h={...base}; if(!state.AUTH_SESSION){ if(!h['Authorization'] && !h['X-API-Key']){ h['Authorization']='Bearer '+(global.LPS2_DEMO_KEY||'secret12345'); } } else if(unsafe && state.CSRF_TOKEN){ h['X-CSRF-Token']=state.CSRF_TOKEN; } return h; }
-  async function fetchWithCsrf(url,opt={}, {unsafe=false}={}){ const o={...opt}; o.headers=authHeaders(o.headers||{}, {unsafe}); const res=await fetch(url,o); if(!res.ok){ let data={}; try{data=await res.json();}catch(_){ } if(data && (data.error==='csrf_missing'||data.error==='csrf_invalid')){ await refreshAuth(); } } return res; }
+  // No longer using the separate authHeaders function - 
+  // Headers are now managed directly in fetchWithCsrf
+  async function fetchWithCsrf(url,opt={}, {unsafe=false}={}){ 
+    // Always refresh auth before CSRF-required operations
+    if (unsafe) {
+      await refreshAuth();
+    }
+    
+    const o = {...opt}; 
+    
+    // Setup headers
+    if (!o.headers) o.headers = {};
+    
+    // Always set content type for POST/PUT operations
+    if ((opt.method === 'POST' || opt.method === 'PUT') && !o.headers['Content-Type']) {
+      o.headers['Content-Type'] = 'application/json';
+    }
+    
+    // Add authorization headers (API key or CSRF)
+    if (!state.AUTH_SESSION) {
+      // API key auth for non-session requests
+      if (!o.headers['Authorization'] && !o.headers['X-API-Key']) { 
+        o.headers['Authorization'] = 'Bearer ' + (global.LPS2_DEMO_KEY || 'secret12345'); 
+      }
+    } else if (unsafe) {
+      // Add CSRF token directly for unsafe methods when using session auth
+      if (state.CSRF_TOKEN) {
+        o.headers['X-CSRF-Token'] = state.CSRF_TOKEN;
+        
+        // Debug log
+        console.log(`CSRF Debug: Sending request to ${url} with token ${state.CSRF_TOKEN.substring(0,5)}...`);
+      } else {
+        console.warn("No CSRF token available for unsafe request!");
+      }
+    }
+    
+    // If sending JSON body, make sure it's properly stringified
+    if (o.body && typeof o.body === 'object' && !(o.body instanceof FormData)) {
+      o.body = JSON.stringify(o.body);
+    }
+    
+    const res = await fetch(url, o); 
+    
+    if (!res.ok) { 
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (e) { 
+        console.error("Failed to parse error response", e);
+      } 
+      
+      if (data && (data.error === 'csrf_missing' || data.error === 'csrf_invalid')) {
+        console.warn(`CSRF Error: ${data.error} for ${url}. Refreshing auth...`);
+        await refreshAuth(); 
+        
+        if (data.error === 'csrf_invalid') {
+          // Alert user about token issues
+          alert("Session validation error. Please try again.");
+          return res;
+        }
+      } else if (!res.ok) {
+        console.error(`Request failed: ${url}`, data);
+      }
+    } 
+    return res; 
+  }
 
   // Toast system (idempotent mount)
   function ensureToastContainer(){ let c=document.getElementById('toastContainer'); if(!c){ c=document.createElement('div'); c.id='toastContainer'; c.style.cssText='position:fixed;top:14px;right:14px;z-index:3000;display:flex;flex-direction:column;gap:8px;max-width:280px;'; document.body.appendChild(c);} return c; }

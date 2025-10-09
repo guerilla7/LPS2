@@ -110,17 +110,33 @@ def _validate_csrf_if_session():
         return None
     if not session.get('user'):
         return None
+    
+    # Get expected token from session
     expected = session.get('csrf_token')
     if not expected:
+        logger.warning(f"CSRF validation failed: No CSRF token in session for user {session.get('user')}")
         return jsonify({'error':'csrf_missing'}), 400
+    
+    # Look for token in headers first (preferred)
     provided = request.headers.get('X-CSRF-Token')
+    
+    # Fall back to JSON body if not in headers
     if not provided and request.is_json:
         try:
             provided = (request.json or {}).get('csrf_token')
-        except Exception:
+        except Exception as e:
+            logger.error(f"Error extracting CSRF from JSON: {str(e)}")
             provided = None
+    
+    # Check if token is valid
+    if not provided:
+        logger.warning(f"CSRF validation failed: No CSRF token provided in request for user {session.get('user')}")
+        return jsonify({'error':'csrf_missing'}), 400
+    
     if provided != expected:
+        logger.warning(f"CSRF validation failed: Invalid token for user {session.get('user')}. Expected '{expected[:5]}...', got '{provided[:5] if provided else None}...'")
         return jsonify({'error':'csrf_invalid'}), 403
+    
     return None
 
 # --- Runtime LLM endpoint management helpers ---------------------------------
@@ -211,9 +227,21 @@ def test_profile_endpoint():
         admins = {u.strip() for u in os.environ.get('LPS2_ADMIN_USERS','').split(',') if u.strip()}
         if session.get('user') not in admins:
             return jsonify({'error':'forbidden'}), 403
-    fail = _validate_csrf_if_session();
-    if fail: return fail
+    
+    # Log request for debugging
+    logger.info(f"test_profile_endpoint: headers={dict(request.headers)}")
+    if request.is_json:
+        logger.info(f"test_profile_endpoint: json={request.json}")
+    
+    fail = _validate_csrf_if_session()
+    if fail: 
+        logger.warning(f"CSRF validation failed in test_profile_endpoint")
+        return fail
+    
     endpoint = ((request.json or {}).get('endpoint') or '').strip()
+    if not endpoint:
+        return jsonify({'error':'endpoint_required'}), 400
+    
     result = _test_endpoint_connectivity(endpoint)
     audit('endpoint_test', endpoint=endpoint, ok=result.get('ok'), error=result.get('error'))
     return jsonify(result), (200 if result.get('ok') else 400)
@@ -225,12 +253,22 @@ def upsert_profile():
         admins = {u.strip() for u in os.environ.get('LPS2_ADMIN_USERS','').split(',') if u.strip()}
         if session.get('user') not in admins:
             return jsonify({'error':'forbidden'}), 403
-    fail = _validate_csrf_if_session();
-    if fail: return fail
+    
+    # Log request for debugging
+    logger.info(f"upsert_profile: headers={dict(request.headers)}")
+    if request.is_json:
+        logger.info(f"upsert_profile: json={request.json}")
+    
+    fail = _validate_csrf_if_session()
+    if fail:
+        logger.warning(f"CSRF validation failed in upsert_profile")
+        return fail
+    
     data = request.json or {}
     name = (data.get('name') or '').strip()
     endpoint = (data.get('endpoint') or '').strip()
     persist = bool(data.get('persist'))
+    
     if not name or not endpoint:
         return jsonify({'error':'name_and_endpoint_required'}), 400
     test_res = _test_endpoint_connectivity(endpoint)
@@ -251,29 +289,45 @@ def activate_profile():
         admins = {u.strip() for u in os.environ.get('LPS2_ADMIN_USERS','').split(',') if u.strip()}
         if session.get('user') not in admins:
             return jsonify({'error':'forbidden'}), 403
-    fail = _validate_csrf_if_session();
-    if fail: return fail
+    
+    # Log request for debugging
+    logger.info(f"activate_profile: headers={dict(request.headers)}")
+    if request.is_json:
+        logger.info(f"activate_profile: json={request.json}")
+    
+    fail = _validate_csrf_if_session()
+    if fail:
+        logger.warning(f"CSRF validation failed in activate_profile")
+        return fail
+    
     data = request.json or {}
     name = (data.get('name') or '').strip()
+    persist = bool(data.get('persist'))
+    
     if not name:
         return jsonify({'error':'name_required'}), 400
+    
     with _PROFILES_LOCK:
         prof = _ENDPOINT_PROFILES['profiles'].get(name)
         if not prof:
             return jsonify({'error':'not_found'}), 404
         endpoint = prof['endpoint']
+    
     test_res = _test_endpoint_connectivity(endpoint)
     if not test_res.get('ok'):
         return jsonify({'error':'activation_failed', 'test': test_res}), 400
+    
     try:
         updated = _update_llm_endpoint(endpoint, persist=False)
     except Exception as e:
         return jsonify({'error':'update_failed', 'detail': str(e)}), 400
+    
     with _PROFILES_LOCK:
         _ENDPOINT_PROFILES['active'] = name
         _ENDPOINT_PROFILES['profiles'][name]['last_test'] = test_res
-        if data.get('persist'):
+        if persist:
             _save_profiles()
+    
     audit('endpoint_profile_activate', name=name, endpoint=endpoint)
     return jsonify({'activated': name, 'endpoint': updated, 'test': test_res})
 
@@ -284,18 +338,32 @@ def delete_profile():
         admins = {u.strip() for u in os.environ.get('LPS2_ADMIN_USERS','').split(',') if u.strip()}
         if session.get('user') not in admins:
             return jsonify({'error':'forbidden'}), 403
-    fail = _validate_csrf_if_session();
-    if fail: return fail
+    
+    # Log request for debugging
+    logger.info(f"delete_profile: headers={dict(request.headers)}")
+    if request.is_json:
+        logger.info(f"delete_profile: json={request.json}")
+    
+    fail = _validate_csrf_if_session()
+    if fail:
+        logger.warning(f"CSRF validation failed in delete_profile")
+        return fail
+    
     data = request.json or {}
     name = (data.get('name') or '').strip()
+    persist = bool(data.get('persist'))
+    
     if not name:
         return jsonify({'error':'name_required'}), 400
+    
     with _PROFILES_LOCK:
         if _ENDPOINT_PROFILES.get('active') == name:
             return jsonify({'error':'cannot_delete_active'}), 400
+        
         removed = bool(_ENDPOINT_PROFILES['profiles'].pop(name, None))
-        if data.get('persist'):
+        if persist:
             _save_profiles()
+    
     audit('endpoint_profile_delete', name=name, removed=removed)
     return jsonify({'deleted': removed, 'profile': name})
 
@@ -344,6 +412,33 @@ def chat():
     ip = request.headers.get('X-Forwarded-For', request.remote_addr or 'unknown').split(',')[0].strip()
     if not check_rate(ip):
         return jsonify({'error': 'rate_limited'}), 429
+    
+    # Validate request if not multipart (multipart will be validated separately)
+    if not request.content_type or not request.content_type.startswith('multipart/form-data'):
+        try:
+            from utils.schemas import ChatMessageSchema
+            from utils.validation import validate_data
+            
+            # Direct validation
+            data = request.json or {}
+            is_valid, validated_data, errors = validate_data(data, ChatMessageSchema)
+            
+            if not is_valid:
+                return jsonify({
+                    'error': 'validation_error', 
+                    'message': 'Invalid chat message',
+                    'details': errors
+                }), 400
+                
+            # For convenience in the rest of the function
+            request.validated_data = validated_data
+        except ImportError:
+            # Validation module not available, continue with normal flow
+            logger.debug("Validation module not available, skipping validation")
+        except Exception as e:
+            # Log but continue with the request to maintain backward compatibility
+            logger.exception(f"Validation error: {e}")
+    
     prompt = None
     file_content = None
     file_type = None
