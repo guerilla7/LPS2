@@ -4,71 +4,114 @@
   async function refreshAuth(){
     try { const r = await fetch('/auth/status'); if(!r.ok) return state; const j = await r.json(); state.AUTH_SESSION=!!j.authenticated; state.CSRF_TOKEN=j.csrf_token||null; state.USER=j.user||null; state.IS_ADMIN=!!j.is_admin; return state; } catch(e){ return state; }
   }
-  // No longer using the separate authHeaders function - 
-  // Headers are now managed directly in fetchWithCsrf
-  async function fetchWithCsrf(url,opt={}, {unsafe=false}={}){ 
-    // Always refresh auth before CSRF-required operations
+  // Helper function to prepare headers with auth info
+  function prepareHeaders(headers = {}, requireCsrf = false) {
+    const result = { ...headers };
+    
+    // Handle authentication
+    if (!state.AUTH_SESSION) {
+      // API key auth for non-session requests
+      if (!result['Authorization'] && !result['X-API-Key']) { 
+        result['Authorization'] = 'Bearer ' + (global.LPS2_DEMO_KEY || 'secret12345'); 
+      }
+    } else if (requireCsrf && state.CSRF_TOKEN) {
+      // Add CSRF token for session auth
+      result['X-CSRF-Token'] = state.CSRF_TOKEN;
+    }
+    
+    return result;
+  }
+  
+  // Core fetch function with CSRF handling
+  async function fetchWithCsrf(url, options = {}, { unsafe = false } = {}) {
+    // Always refresh auth before unsafe operations
     if (unsafe) {
+      console.log(`Refreshing auth before ${url}`);
       await refreshAuth();
     }
     
-    const o = {...opt}; 
+    // Prepare request options
+    const opts = { ...options };
     
-    // Setup headers
-    if (!o.headers) o.headers = {};
+    // Set up headers
+    opts.headers = prepareHeaders(opts.headers || {}, unsafe);
     
-    // Always set content type for POST/PUT operations
-    if ((opt.method === 'POST' || opt.method === 'PUT') && !o.headers['Content-Type']) {
-      o.headers['Content-Type'] = 'application/json';
-    }
-    
-    // Add authorization headers (API key or CSRF)
-    if (!state.AUTH_SESSION) {
-      // API key auth for non-session requests
-      if (!o.headers['Authorization'] && !o.headers['X-API-Key']) { 
-        o.headers['Authorization'] = 'Bearer ' + (global.LPS2_DEMO_KEY || 'secret12345'); 
+    // Handle JSON body and ensure CSRF token is included
+    if ((opts.method === 'POST' || opts.method === 'PUT' || opts.method === 'DELETE')) {
+      // Set content type for JSON requests if not already set and not FormData
+      if (!opts.headers['Content-Type'] && !(opts.body instanceof FormData)) {
+        opts.headers['Content-Type'] = 'application/json';
       }
-    } else if (unsafe) {
-      // Add CSRF token directly for unsafe methods when using session auth
-      if (state.CSRF_TOKEN) {
-        o.headers['X-CSRF-Token'] = state.CSRF_TOKEN;
-        
-        // Debug log
-        console.log(`CSRF Debug: Sending request to ${url} with token ${state.CSRF_TOKEN.substring(0,5)}...`);
-      } else {
-        console.warn("No CSRF token available for unsafe request!");
-      }
-    }
-    
-    // If sending JSON body, make sure it's properly stringified
-    if (o.body && typeof o.body === 'object' && !(o.body instanceof FormData)) {
-      o.body = JSON.stringify(o.body);
-    }
-    
-    const res = await fetch(url, o); 
-    
-    if (!res.ok) { 
-      let data = {};
-      try {
-        data = await res.json();
-      } catch (e) { 
-        console.error("Failed to parse error response", e);
-      } 
       
-      if (data && (data.error === 'csrf_missing' || data.error === 'csrf_invalid')) {
-        console.warn(`CSRF Error: ${data.error} for ${url}. Refreshing auth...`);
-        await refreshAuth(); 
-        
-        if (data.error === 'csrf_invalid') {
-          // Alert user about token issues
-          alert("Session validation error. Please try again.");
-          return res;
+      // For JSON body, ensure CSRF token is included in the payload too
+      if (opts.headers['Content-Type'] === 'application/json' && unsafe && state.CSRF_TOKEN) {
+        if (typeof opts.body === 'string') {
+          try {
+            // Parse string JSON and add CSRF token
+            const bodyObj = JSON.parse(opts.body);
+            bodyObj.csrf_token = state.CSRF_TOKEN;
+            opts.body = JSON.stringify(bodyObj);
+          } catch (e) {
+            console.warn('Could not parse JSON body string to add CSRF token');
+          }
+        } else if (typeof opts.body === 'object' && !(opts.body instanceof FormData)) {
+          // Convert body object to string with CSRF token
+          const bodyObj = opts.body || {};
+          bodyObj.csrf_token = state.CSRF_TOKEN;
+          opts.body = JSON.stringify(bodyObj);
         }
-      } else if (!res.ok) {
-        console.error(`Request failed: ${url}`, data);
       }
-    } 
-    return res; 
+    }
+    
+    // Debug log CSRF token
+    if (unsafe && state.CSRF_TOKEN) {
+      console.log(`CSRF Token for ${url}: ${state.CSRF_TOKEN.substring(0,10)}...`);
+      console.log(`Headers:`, opts.headers);
+      console.log(`Request method: ${opts.method || 'GET'}`);
+    } else if (unsafe && !state.CSRF_TOKEN) {
+      console.warn(`No CSRF token available for unsafe request to ${url}!`);
+    }
+    
+    // If body is an object, stringify it
+    if (opts.body && typeof opts.body === 'object' && !(opts.body instanceof FormData)) {
+      opts.body = JSON.stringify(opts.body);
+      console.log(`Request body for ${url}:`, opts.body);
+    }
+    
+    // Make the request
+    try {
+      const response = await fetch(url, opts);
+      
+      // Handle response
+      if (!response.ok) {
+        let errorData = {};
+        
+        try {
+          errorData = await response.json();
+          console.error(`Error response from ${url}:`, errorData);
+        } catch (e) {
+          console.error(`Failed to parse error response from ${url}: ${e.message}`);
+        }
+        
+        // Handle CSRF errors
+        if (errorData && (errorData.error === 'csrf_missing' || errorData.error === 'csrf_invalid')) {
+          console.warn(`CSRF Error: ${errorData.error} on ${url}. Refreshing auth...`);
+          
+          // Refresh auth to get a new token
+          await refreshAuth();
+          
+          if (errorData.error === 'csrf_invalid') {
+            // Alert user and let them try again
+            alert("Session validation error. Please try the operation again.");
+          }
+        }
+      }
+      
+      return response;
+    } catch (error) {
+      console.error(`Network error calling ${url}:`, error);
+      throw error;
+    }
   }
 
   // Toast system (idempotent mount)

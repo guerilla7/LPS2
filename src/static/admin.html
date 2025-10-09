@@ -228,40 +228,74 @@ async function fetchProfiles(){
   }
 }
 async function testEndpoint(){
-  const endpoint=epEndpoint.value.trim();
-  if(!endpoint) return;
+  const endpoint = epEndpoint.value.trim();
+  if (!endpoint) {
+    showToast('Please enter an endpoint URL', 'warn');
+    return;
+  }
   
-  epTestStatus.textContent='Testing...';
-  lastTest=null;
+  epTestStatus.textContent = 'Testing...';
+  lastTest = null;
   
   try {
-    console.log("Testing endpoint:", endpoint);
+    console.group("Testing endpoint");
+    console.log("Testing endpoint URL:", endpoint);
     
-    const r=await fetchWithCsrf('/admin/llm-endpoints/profiles/test',{
-      method:'POST',
-      body: JSON.stringify({endpoint})
-    }, {unsafe:true});
+    // First make sure we have a valid CSRF token
+    await refreshAuth();
+    console.log("Auth refreshed, CSRF token:", state.CSRF_TOKEN ? state.CSRF_TOKEN.substring(0,10) + "..." : "none");
     
-    let data={};
+    // Use the improved fetchWithCsrf function with explicit unsafe flag
+    const r = await fetchWithCsrf('/admin/llm-endpoints/profiles/test', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        endpoint: endpoint,
+        csrf_token: state.CSRF_TOKEN
+      })
+    }, { unsafe: true });
+    
+    
+    console.log("Response status:", r.status);
+    
+    // Process the response
+    let data = {};
+    
     try {
-      data=await r.json();
-      console.log("Test endpoint response:", data);
-    } catch(e){ 
+      data = await r.json();
+      console.log("Response data:", data);
+    } catch(e) { 
       console.error("Error parsing response:", e);
+      epTestStatus.innerHTML = `<span class='status-bad'>Error parsing response: ${e.message}</span>`;
+      showToast('Failed to parse server response', 'error');
+      return;
+    } finally {
+      console.groupEnd();
     }
     
     if(!r.ok){
-      epTestStatus.innerHTML=`<span class='status-bad'>Fail: ${data.error||r.status}</span>`;
-      showToast('Endpoint test failed','error');
-      console.error("Endpoint test failed:", data);
+      const errorMessage = data.error || `HTTP ${r.status}`;
+      console.error("Test failed:", errorMessage, data);
+      epTestStatus.innerHTML = `<span class='status-bad'>Fail: ${errorMessage}</span>`;
+      showToast('Endpoint test failed: ' + errorMessage, 'error');
     } else {
-      lastTest=data;
-      epTestStatus.innerHTML=`<span class='status-ok'>OK ${data.latency_ms||'?'}ms ${data.model? '('+data.model+')':''}</span>`;
-      showToast('Endpoint reachable','success');
+      // Update test data and UI
+      lastTest = {
+        ok: true,
+        endpoint: endpoint,
+        model: data.model || 'unknown',
+        latency_ms: data.latency_ms || 0
+      };
+      
+      epTestStatus.innerHTML = `<span class='status-ok'>OK ${data.latency_ms||'?'}ms ${data.model? '('+data.model+')':''}</span>`;
+      showToast('Endpoint reachable', 'success');
     }
-  } catch(e){
-    console.error("Error testing endpoint:", e);
-    epTestStatus.innerHTML=`<span class="status-bad">Error: ${e.message}</span>`;
+  } catch(e) {
+    console.error("Network error:", e);
+    epTestStatus.innerHTML = `<span class="status-bad">Network error: ${e.message}</span>`;
+    showToast('Network error', 'error');
   }
   
   updateButtons();
@@ -276,14 +310,21 @@ async function saveProfile(){
   epSaveBtn.textContent='Saving...';
   
   try {
+    // Make sure we have a valid CSRF token
+    await refreshAuth();
+    
     console.log("Saving profile:", {name, endpoint, persist: epPersist.checked});
     
     const r=await fetchWithCsrf('/admin/llm-endpoints/profiles',{
       method:'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({
         name,
         endpoint,
-        persist: epPersist.checked
+        persist: epPersist.checked,
+        csrf_token: state.CSRF_TOKEN
       })
     }, {unsafe:true});
     
@@ -319,13 +360,20 @@ async function activateProfile(){
   epActivateBtn.textContent='Activating...';
   
   try {
+    // Make sure we have a valid CSRF token
+    await refreshAuth();
+    
     console.log("Activating profile:", {name: selectedProfile, persist: epPersist.checked});
     
     const r=await fetchWithCsrf('/admin/llm-endpoints/profiles/activate',{
       method:'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({
         name: selectedProfile,
-        persist: epPersist.checked
+        persist: epPersist.checked,
+        csrf_token: state.CSRF_TOKEN
       })
     }, {unsafe:true});
     
@@ -363,13 +411,20 @@ async function deleteProfile(){
   epDeleteBtn.textContent='Deleting...';
   
   try {
+    // Make sure we have a valid CSRF token
+    await refreshAuth();
+    
     console.log("Deleting profile:", {name: selectedProfile, persist: epPersist.checked});
     
     const r=await fetchWithCsrf('/admin/llm-endpoints/profiles/delete',{
       method:'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({
         name: selectedProfile,
-        persist: epPersist.checked
+        persist: epPersist.checked,
+        csrf_token: state.CSRF_TOKEN
       })
     }, {unsafe:true});
     
