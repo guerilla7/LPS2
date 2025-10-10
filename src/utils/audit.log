@@ -56,3 +56,7 @@
 {"ts": 1759784748.972756, "event": "chat_request", "ip": "127.0.0.1", "content_length": 46}
 {"ts": 1760069413.7124338, "event": "endpoint_test", "endpoint": "qwen/qwen3-4b-thinking-2507", "ok": false, "error": "invalid_scheme"}
 {"ts": 1760069483.3551009, "event": "endpoint_test", "endpoint": "qwen/qwen3-4b-thinking-2507", "ok": false, "error": "invalid_scheme"}
+{"ts": 1760069650.608105, "event": "endpoint_test", "endpoint": "qwen/qwen3-4b-thinking-2507", "ok": false, "error": "invalid_scheme"}
+{"ts": 1760069668.647657, "event": "endpoint_test", "endpoint": "http://192.168.5.72:1234", "ok": true, "error": null}
+{"ts": 1760069685.5805702, "event": "endpoint_profile_upsert", "name": "qwen/qwen3-4b-thinking-2507", "endpoint": "http://192.168.5.72:1234", "ok": true, "persist": false}
+{"ts": 1760069692.140666, "event": "endpoint_profile_activate", "name": "qwen/qwen3-4b-thinking-2507", "endpoint": "http://192.168.5.72:1234"}
