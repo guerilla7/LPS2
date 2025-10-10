@@ -188,11 +188,43 @@
 <script>
 // Admin Console Logic using shared utilities
 // Logout wiring
-document.addEventListener('DOMContentLoaded', ()=>{
-  const lb=document.getElementById('logoutBtn');
+document.addEventListener('DOMContentLoaded', async ()=>{
+  const lb = document.getElementById('logoutBtn');
   if(lb){ lb.addEventListener('click', async ()=>{ try { const r=await fetch('/logout',{method:'POST'}); if(r.ok){ window.location.href='/login'; } else { alert('Logout failed'); } } catch(e){ alert('Logout failed'); } }); }
+  
+  // Initialize auth status
+  try {
+    console.log("Initializing admin page...");
+    await refreshAuth();
+    
+    // Initialize theme
+    const currentTheme = theme.get();
+    theme.apply(currentTheme);
+    const themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+      themeToggle.addEventListener('click', () => {
+        const newTheme = theme.get() === 'dark' ? 'light' : 'dark';
+        theme.set(newTheme);
+        theme.apply(newTheme);
+      });
+    }
+    
+    // Initialize user badge
+    const adminUserBadge = document.getElementById('adminUserBadge');
+    if (adminUserBadge && state.USER) {
+      adminUserBadge.textContent = state.USER;
+    }
+    
+    // Load initial data
+    fetchProfiles();
+    
+    console.log("Admin page initialization complete.");
+  } catch (e) {
+    console.error("Error initializing admin page:", e);
+    showToast("Error initializing page. Try refreshing.", "error");
+  }
 });
-const { fetchWithCsrf, showToast, confirmAction, refreshAuth, state } = window.LPS2Common;
+const { fetchWithCsrf, showToast, confirmAction, refreshAuth, state, theme } = window.LPS2Common;
 let epProfilesData={profiles:{},active:null};let lastTest=null;let selectedProfile=null;
 const epName=document.getElementById('epName');const epEndpoint=document.getElementById('epEndpoint');const epPersist=document.getElementById('epPersist');const epTestBtn=document.getElementById('epTestBtn');const epSaveBtn=document.getElementById('epSaveBtn');const epActivateBtn=document.getElementById('epActivateBtn');const epDeleteBtn=document.getElementById('epDeleteBtn');const epRefreshBtn=document.getElementById('epRefreshBtn');const epProfilesList=document.getElementById('epProfilesList');const epTestStatus=document.getElementById('epTestStatus');
 const endpointBadge=document.getElementById('activeEndpointBadge');
@@ -251,10 +283,9 @@ async function testEndpoint(){
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        endpoint: endpoint,
-        csrf_token: state.CSRF_TOKEN
-      })
+      body: {
+        endpoint: endpoint
+      }
     }, { unsafe: true });
     
     
@@ -320,12 +351,11 @@ async function saveProfile(){
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
+      body: {
         name,
         endpoint,
-        persist: epPersist.checked,
-        csrf_token: state.CSRF_TOKEN
-      })
+        persist: epPersist.checked
+      }
     }, {unsafe:true});
     
     let data = {};
@@ -370,11 +400,10 @@ async function activateProfile(){
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
+      body: {
         name: selectedProfile,
-        persist: epPersist.checked,
-        csrf_token: state.CSRF_TOKEN
-      })
+        persist: epPersist.checked
+      }
     }, {unsafe:true});
     
     let data = {};
@@ -421,11 +450,10 @@ async function deleteProfile(){
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
+      body: {
         name: selectedProfile,
-        persist: epPersist.checked,
-        csrf_token: state.CSRF_TOKEN
-      })
+        persist: epPersist.checked
+      }
     }, {unsafe:true});
     
     let data = {};
@@ -463,8 +491,88 @@ epTestBtn?.addEventListener('click',testEndpoint);epSaveBtn?.addEventListener('c
 const kbFile=document.getElementById('kbFile');const kbOcr=document.getElementById('kbOcr');const kbIngestFileBtn=document.getElementById('kbIngestFileBtn');const kbIngestTextOpenBtn=document.getElementById('kbIngestTextOpenBtn');const kbIngestTextArea=document.getElementById('kbIngestTextArea');const kbText=document.getElementById('kbText');const kbSource=document.getElementById('kbSource');const kbIngestTextBtn=document.getElementById('kbIngestTextBtn');const kbIngestTextCancel=document.getElementById('kbIngestTextCancel');const kbListBtn=document.getElementById('kbListBtn');const kbDeleteBtn=document.getElementById('kbDeleteBtn');const kbSearchInput=document.getElementById('kbSearchInput');const kbSearchBtn=document.getElementById('kbSearchBtn');const kbDocs=document.getElementById('kbDocs');const kbSearchResults=document.getElementById('kbSearchResults');
 kbIngestTextOpenBtn.addEventListener('click',()=>{kbIngestTextArea.style.display='block';kbText.focus();});kbIngestTextCancel.addEventListener('click',()=>{kbIngestTextArea.style.display='none';kbText.value='';kbSource.value='';});
 async function kbListDocs(){try{const r=await fetch('/kb/documents');const data=await r.json();if(!data.enabled){kbDocs.innerHTML='<em>KB disabled</em>';return;}if(!Array.isArray(data.documents)||!data.documents.length){kbDocs.innerHTML='<em>No documents</em>';return;}let html='<table><tr><th><input type="checkbox" id="kbSelectAll"/></th><th>Doc</th><th>Source</th><th>Chunks</th></tr>';for(const d of data.documents){html+=`<tr><td><input type='checkbox' data-docid='${d.doc_id}'/></td><td style='font-family:monospace;'>${d.doc_id.substring(0,8)}</td><td>${d.source}</td><td>${d.chunks}</td></tr>`;}html+='</table>';kbDocs.innerHTML=html;initKBSelection();}catch(e){kbDocs.innerHTML='<em>Error</em>';}}
-async function kbIngestFile(){const f=kbFile.files[0];if(!f)return;const fd=new FormData();fd.append('file',f);if(kbOcr.checked)fd.append('ocr','1');kbIngestFileBtn.disabled=true;const r=await fetchWithCsrf('/kb/ingest',{method:'POST',body:fd},{unsafe:true});let d={};try{d=await r.json();}catch(_){ }if(!r.ok){showToast('Ingest failed','error');}else{showToast('File ingested','success');kbFile.value='';kbOcr.checked=false;kbListDocs();}kbIngestFileBtn.disabled=false;}
-async function kbIngestText(){const txt=kbText.value.trim();if(!txt)return;const source=kbSource.value.trim()||'inline';const r=await fetchWithCsrf('/kb/ingest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:txt,source})},{unsafe:true});const d=await r.json().catch(()=>({}));if(!r.ok){showToast('Text ingest failed','error');}else{showToast('Text ingested','success');kbText.value='';kbSource.value='';kbIngestTextArea.style.display='none';kbListDocs();}}
+async function kbIngestFile(){
+  const f=kbFile.files[0];
+  if(!f) return;
+  
+  // First make sure we have a valid CSRF token
+  await refreshAuth();
+  
+  const fd=new FormData();
+  fd.append('file',f);
+  if(kbOcr.checked)fd.append('ocr','1');
+  if(state.CSRF_TOKEN) fd.append('csrf_token', state.CSRF_TOKEN);
+  
+  kbIngestFileBtn.disabled=true;
+  
+  try {
+    const r=await fetchWithCsrf('/kb/ingest',{
+      method:'POST',
+      body:fd
+    },{unsafe:true});
+    
+    let d={};
+    try{
+      d=await r.json();
+    }catch(e){ 
+      console.error("Error parsing KB ingest response:", e);
+    }
+    
+    if(!r.ok){
+      console.error("KB ingest failed:", d);
+      showToast('Ingest failed: ' + (d.error || r.status),'error');
+    } else {
+      showToast('File ingested','success');
+      kbFile.value='';
+      kbOcr.checked=false;
+      kbListDocs();
+    }
+  } catch(e) {
+    console.error("KB ingest error:", e);
+    showToast('Ingest error: ' + e.message, 'error');
+  } finally {
+    kbIngestFileBtn.disabled=false;
+  }
+}
+async function kbIngestText(){
+  const txt=kbText.value.trim();
+  if(!txt)return;
+  
+  // First make sure we have a valid CSRF token
+  await refreshAuth();
+  
+  const source=kbSource.value.trim()||'inline';
+  
+  try {
+    const r=await fetchWithCsrf('/kb/ingest',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: {
+        text: txt,
+        source: source
+      }
+    },{unsafe:true});
+    
+    const d=await r.json().catch((e)=>{
+      console.error("Error parsing KB text ingest response:", e);
+      return {};
+    });
+    
+    if(!r.ok){
+      console.error("KB text ingest failed:", d);
+      showToast('Text ingest failed: ' + (d.error || r.status),'error');
+    } else {
+      showToast('Text ingested','success');
+      kbText.value='';
+      kbSource.value='';
+      kbIngestTextArea.style.display='none';
+      kbListDocs();
+    }
+  } catch(e) {
+    console.error("KB text ingest error:", e);
+    showToast('Text ingest error: ' + e.message, 'error');
+  }
+}
 async function kbSearch(){const q=kbSearchInput.value.trim();if(!q){kbSearchResults.innerHTML='';return;}const r=await fetch('/kb/search?q='+encodeURIComponent(q)+'&k=10');const d=await r.json();if(!d.enabled){kbSearchResults.innerHTML='<em>KB disabled</em>';return;}if(!Array.isArray(d.results)||!d.results.length){kbSearchResults.innerHTML='<em>No matches</em>';return;}let html='<table><tr><th>Score</th><th>Source</th><th>Preview</th></tr>';for(const it of d.results){html+=`<tr><td>${it.score.toFixed(3)}</td><td>${it.source}</td><td>${it.preview}</td></tr>`;}html+='</table>';kbSearchResults.innerHTML=html;}
 async function kbDeleteSelected(){const checks=kbDocs.querySelectorAll('input[type=checkbox][data-docid]:checked');const ids=Array.from(checks).map(c=>c.getAttribute('data-docid'));if(!ids.length){showToast('No docs selected','warn');return;}const ok=await confirmAction('Delete '+ids.length+' document(s)?');if(!ok)return;const r=await fetchWithCsrf('/kb/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({doc_ids:ids})},{unsafe:true});const d=await r.json().catch(()=>({}));if(!r.ok){showToast('Delete failed','error');}else{showToast('Deleted','success');kbListDocs();}}
 function initKBSelection(){const selectAll=document.getElementById('kbSelectAll');if(!selectAll)return;const update=()=>{const any=kbDocs.querySelectorAll('input[type=checkbox][data-docid]:checked').length>0;kbDeleteBtn.disabled=!any;};selectAll.addEventListener('change',()=>{kbDocs.querySelectorAll('input[type=checkbox][data-docid]').forEach(cb=>cb.checked=selectAll.checked);update();});kbDocs.addEventListener('change',e=>{if(e.target&&e.target.matches('input[type=checkbox][data-docid]'))update();});update();}
@@ -561,9 +669,6 @@ async function debugSession() {
   // Auto-refresh auth status every 5 minutes to keep CSRF token fresh
   setInterval(refreshAuth, 5 * 60 * 1000);
 })();
-</script>
-</body>
-</html>
 </script>
 </body>
 </html>

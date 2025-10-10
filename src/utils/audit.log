@@ -54,3 +54,4 @@
 {"ts": 1759776934.988748, "event": "chat_request", "ip": "127.0.0.1", "content_length": 103}
 {"ts": 1759778359.606386, "event": "chat_request", "ip": "127.0.0.1", "content_length": 89}
 {"ts": 1759784748.972756, "event": "chat_request", "ip": "127.0.0.1", "content_length": 46}
+{"ts": 1760069413.7124338, "event": "endpoint_test", "endpoint": "qwen/qwen3-4b-thinking-2507", "ok": false, "error": "invalid_scheme"}

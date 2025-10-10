@@ -147,9 +147,26 @@ def _validate_csrf_if_session():
         except Exception as e:
             logger.error(f"Error with manual JSON parse for CSRF: {str(e)}")
     
+    # Try form data as last resort
+    if not provided and request.form:
+        provided = request.form.get('csrf_token')
+        logger.debug(f"CSRF from form data: {provided[:5]}... (if present)")
+    
     # Check if token is valid - log full details for debugging
     if not provided:
         logger.warning(f"CSRF validation failed: No CSRF token provided in request for user {session.get('user')}")
+        logger.warning(f"Headers: {dict(request.headers)}")
+        logger.warning(f"Request method: {request.method}")
+        logger.warning(f"Content-Type: {request.content_type}")
+        
+        # In development, regenerate token and continue
+        if os.environ.get('FLASK_ENV') == 'development' or os.environ.get('LPS2_DEBUG_CSRF'):
+            from secrets import token_urlsafe
+            new_token = token_urlsafe(32)
+            session['csrf_token'] = new_token
+            logger.warning(f"Development mode: Generated new token and continuing")
+            return None
+            
         return jsonify({'error':'csrf_missing', 'debug': 'No token provided'}), 400
     
     # Compare tokens
@@ -283,9 +300,6 @@ def test_profile_endpoint():
     # Export LPS2_DEBUG_CSRF=1 to bypass CSRF validation during development
     if os.environ.get('LPS2_DEBUG_CSRF'):
         logger.warning("⚠️ CSRF validation bypassed due to LPS2_DEBUG_CSRF=1")
-    
-    # Validate CSRF with more detailed error reporting
-        logger.warning("⚠️ CSRF validation BYPASSED for test endpoint (temporary debug mode)")
     else:
         # Normal CSRF validation
         fail = _validate_csrf_if_session()

@@ -2,7 +2,32 @@
 (function(global){
   const state = { AUTH_SESSION:false, CSRF_TOKEN:null, USER:null, IS_ADMIN:false };
   async function refreshAuth(){
-    try { const r = await fetch('/auth/status'); if(!r.ok) return state; const j = await r.json(); state.AUTH_SESSION=!!j.authenticated; state.CSRF_TOKEN=j.csrf_token||null; state.USER=j.user||null; state.IS_ADMIN=!!j.is_admin; return state; } catch(e){ return state; }
+    try { 
+      console.log("Refreshing auth status...");
+      const r = await fetch('/auth/status'); 
+      if(!r.ok) {
+        console.error("Auth status request failed:", r.status);
+        return state; 
+      } 
+      
+      const j = await r.json(); 
+      state.AUTH_SESSION = !!j.authenticated; 
+      state.CSRF_TOKEN = j.csrf_token || null; 
+      state.USER = j.user || null; 
+      state.IS_ADMIN = !!j.is_admin; 
+      
+      console.log("Auth refreshed:", {
+        authenticated: state.AUTH_SESSION,
+        user: state.USER,
+        isAdmin: state.IS_ADMIN,
+        csrfToken: state.CSRF_TOKEN ? state.CSRF_TOKEN.substring(0,5) + '...' : 'null'
+      });
+      
+      return state; 
+    } catch(e){ 
+      console.error("Error refreshing auth:", e);
+      return state; 
+    }
   }
   // Helper function to prepare headers with auth info
   function prepareHeaders(headers = {}, requireCsrf = false) {
@@ -34,7 +59,15 @@
     const opts = { ...options };
     
     // Set up headers
-    opts.headers = prepareHeaders(opts.headers || {}, unsafe);
+    if (!opts.headers) opts.headers = {};
+    
+    // Always add CSRF token to headers for unsafe operations
+    if (unsafe && state.CSRF_TOKEN) {
+      opts.headers['X-CSRF-Token'] = state.CSRF_TOKEN;
+    }
+    
+    // Add remaining headers (like Authorization)
+    opts.headers = prepareHeaders(opts.headers, unsafe);
     
     // Handle JSON body and ensure CSRF token is included
     if ((opts.method === 'POST' || opts.method === 'PUT' || opts.method === 'DELETE')) {
@@ -70,10 +103,22 @@
       console.log(`Request method: ${opts.method || 'GET'}`);
     } else if (unsafe && !state.CSRF_TOKEN) {
       console.warn(`No CSRF token available for unsafe request to ${url}!`);
+      // Try to get a token immediately
+      await refreshAuth();
+      if (state.CSRF_TOKEN) {
+        console.log(`Obtained new CSRF token: ${state.CSRF_TOKEN.substring(0,10)}...`);
+        opts.headers['X-CSRF-Token'] = state.CSRF_TOKEN;
+      } else {
+        console.error(`Failed to obtain CSRF token even after refresh!`);
+      }
     }
     
     // If body is an object, stringify it
     if (opts.body && typeof opts.body === 'object' && !(opts.body instanceof FormData)) {
+      // Add CSRF token one more time just before stringifying
+      if (unsafe && state.CSRF_TOKEN) {
+        opts.body.csrf_token = state.CSRF_TOKEN;
+      }
       opts.body = JSON.stringify(opts.body);
       console.log(`Request body for ${url}:`, opts.body);
     }
@@ -100,9 +145,26 @@
           // Refresh auth to get a new token
           await refreshAuth();
           
-          if (errorData.error === 'csrf_invalid') {
-            // Alert user and let them try again
-            alert("Session validation error. Please try the operation again.");
+          // If unsafe operation and we have a new token, offer to retry
+          if (unsafe && state.CSRF_TOKEN && confirm("Session validation error. Retry the operation with a fresh token?")) {
+            console.log("Retrying request with fresh token...");
+            
+            // Recreate headers with new token
+            opts.headers['X-CSRF-Token'] = state.CSRF_TOKEN;
+            
+            // Update token in body if it's JSON
+            if (opts.headers['Content-Type'] === 'application/json') {
+              try {
+                const bodyObj = JSON.parse(opts.body);
+                bodyObj.csrf_token = state.CSRF_TOKEN;
+                opts.body = JSON.stringify(bodyObj);
+              } catch (e) {
+                console.warn('Could not update CSRF token in body for retry:', e);
+              }
+            }
+            
+            // Make the retry request
+            return await fetch(url, opts);
           }
         }
       }
@@ -174,6 +236,11 @@
     const parts=links.map(l=>`<a href="${l.href}" class="nav-link${l.key===current?' active':''}" data-nav="${l.key}" ${l.key===current?'aria-current="page"':''}>${l.label}</a>`);
     parts.push('<button id="logoutBtn" class="nav-link logout-btn" type="button">Logout</button>');
     return `<nav class="top-nav" aria-label="Primary"><div class="nav-left">${parts.join('')}</div></nav>`;
+  }
+
+  // Back-compat wrapper to avoid ReferenceError in exports
+  function authHeaders(base = {}, { unsafe = false } = {}) {
+    return prepareHeaders(base, unsafe);
   }
   global.LPS2Common={ 
     state, 
