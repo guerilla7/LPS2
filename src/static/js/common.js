@@ -132,7 +132,9 @@
         let errorData = {};
         
         try {
-          errorData = await response.json();
+          // Parse error body from a clone so original body remains readable
+          const clone = response.clone();
+          errorData = await clone.json();
           console.error(`Error response from ${url}:`, errorData);
         } catch (e) {
           console.error(`Failed to parse error response from ${url}: ${e.message}`);
