@@ -3,7 +3,7 @@
 This module contains Marshmallow schemas for validating API requests
 and responses throughout the LPS2 application.
 """
-from marshmallow import Schema, fields, validate, validates, ValidationError
+from marshmallow import Schema, fields, validate, validates, ValidationError, INCLUDE
 
 # Auth schemas
 class LoginSchema(Schema):
@@ -23,6 +23,9 @@ class ChatMessageSchema(Schema):
     conversation_id = fields.Str(allow_none=True)
     context_id = fields.List(fields.Str(), allow_none=True)
     csrf_token = fields.Str(allow_none=True)
+    # Accept additional fields from clients (e.g., 'prompt', 'extended') without failing validation
+    class Meta:
+        unknown = INCLUDE
     
     @validates('message')
     def validate_message(self, value):

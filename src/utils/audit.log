@@ -60,3 +60,10 @@
 {"ts": 1760069668.647657, "event": "endpoint_test", "endpoint": "http://192.168.5.72:1234", "ok": true, "error": null}
 {"ts": 1760069685.5805702, "event": "endpoint_profile_upsert", "name": "qwen/qwen3-4b-thinking-2507", "endpoint": "http://192.168.5.72:1234", "ok": true, "persist": false}
 {"ts": 1760069692.140666, "event": "endpoint_profile_activate", "name": "qwen/qwen3-4b-thinking-2507", "endpoint": "http://192.168.5.72:1234"}
+{"ts": 1760069769.969352, "event": "kb_ingest", "source": "Architecting_Resilient_LLM_Agents__A_Guide_to_Secure_Plan_then_Execute_Implementations-2.pdf", "doc_id": "5f810621-7ffa-40e7-aae8-488febb9867e", "quarantined": false, "chunks": 142}
+{"ts": 1760135806.446265, "event": "endpoint_test", "endpoint": "http://192.168.5.72:1234", "ok": true, "error": null}
+{"ts": 1760135810.0822132, "event": "endpoint_profile_upsert", "name": "qwen/qwen3-4b-thinking-2507", "endpoint": "http://192.168.5.72:1234", "ok": true, "persist": false}
+{"ts": 1760135863.5789208, "event": "chat_request", "ip": "192.168.5.72", "content_length": 141}
+{"ts": 1760135954.8284218, "event": "endpoint_test", "endpoint": "http://192.168.5.72:1234", "ok": true, "error": null}
+{"ts": 1760135996.1867929, "event": "endpoint_profile_activate", "name": "qwen/qwen3-4b-thinking-2507", "endpoint": "http://192.168.5.72:1234"}
+{"ts": 1760136009.560288, "event": "chat_request", "ip": "192.168.5.72", "content_length": 141}

@@ -972,15 +972,19 @@
                     formData.append('prompt', prompt);
                     formData.append('file', file);
                     formData.append('extended', extended ? '1' : '0');
+                    // Include auth/CSRF headers if session-based auth is active
+                    const headers = authHeaders({}, { unsafe: true });
                     res = await fetch('/chat', {
                         method: 'POST',
+                        headers,
                         body: formData
                     });
                 } else {
+                    // Send JSON with both 'message' (for schema validation) and 'prompt' (for legacy parsing)
                     res = await fetch('/chat', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ prompt, extended })
+                        headers: authHeaders({ 'Content-Type': 'application/json' }, { unsafe: true }),
+                        body: JSON.stringify({ prompt, message: prompt, extended })
                     });
                 }
                 data = await res.json();

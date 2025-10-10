@@ -516,14 +516,62 @@ def chat():
             
             # Direct validation
             data = request.json or {}
+            # If request.json is empty due to content-type quirks, try manual JSON parse
+            if not data and request.data:
+                try:
+                    body_txt = request.get_data(as_text=True)
+                    if body_txt and body_txt.strip().startswith('{'):
+                        data = json.loads(body_txt)
+                except Exception:
+                    pass
+            # Backward-compat: if client sent 'prompt' but not 'message', mirror it so schema passes
+            try:
+                raw_msg = (data.get('message') or '').strip() if isinstance(data.get('message'), str) else ''
+                raw_prompt = (data.get('prompt') or '').strip() if isinstance(data.get('prompt'), str) else ''
+                if not raw_msg and raw_prompt:
+                    data = {**data, 'message': data.get('prompt')}
+            except Exception:
+                pass
+            try:
+                logger.info(f"/chat validation: incoming json keys={list(data.keys())}")
+            except Exception:
+                pass
             is_valid, validated_data, errors = validate_data(data, ChatMessageSchema)
             
             if not is_valid:
-                return jsonify({
-                    'error': 'validation_error', 
-                    'message': 'Invalid chat message',
-                    'details': errors
-                }), 400
+                # Backward-compat: if client sent 'prompt' instead of 'message', adapt and retry
+                if ('message' not in (data or {})) and isinstance((data or {}).get('prompt'), str) and (data.get('prompt') or '').strip():
+                    compat = dict(data)
+                    compat['message'] = compat.get('prompt')
+                    logger.info("/chat validation: applying compat mapping prompt->message and retrying")
+                    is_valid, validated_data, errors2 = validate_data(compat, ChatMessageSchema)
+                    if is_valid:
+                        data = compat
+                    else:
+                        # Merge errors for visibility
+                        errors = {'original': errors, 'after_compat': errors2}
+                if not is_valid:
+                    logger.warning(f"/chat validation failed: errors={errors}")
+                    # Backward-compatibility: if we can recover a non-empty text from 'message' or 'prompt', proceed
+                    fallback_text = ''
+                    try:
+                        m = data.get('message') if isinstance(data, dict) else None
+                        p = data.get('prompt') if isinstance(data, dict) else None
+                        if isinstance(m, str) and m.strip():
+                            fallback_text = m.strip()
+                        elif isinstance(p, str) and p.strip():
+                            fallback_text = p.strip()
+                    except Exception:
+                        fallback_text = ''
+                    if fallback_text:
+                        request.validated_data = {'message': fallback_text}
+                        logger.warning("/chat validation: using fallback prompt/message and continuing")
+                    else:
+                        return jsonify({
+                            'error': 'validation_error', 
+                            'message': 'Invalid chat message',
+                            'details': errors
+                        }), 400
                 
             # For convenience in the rest of the function
             request.validated_data = validated_data
@@ -601,8 +649,13 @@ def chat():
             else:
                 return jsonify({'error': 'Unsupported file type (only text and image allowed).'}), 400
     else:
-        data = request.json
-        prompt = data.get('prompt', '')
+        data = request.json or {}
+        # Accept either 'prompt' or 'message' for JSON requests
+        prompt = (data.get('prompt') or '').strip()
+        if not prompt:
+            msg_fallback = data.get('message')
+            if isinstance(msg_fallback, str):
+                prompt = msg_fallback.strip()
         extended_flag = bool(data.get('extended'))
 
     if not prompt and not file_content:
