@@ -77,3 +77,10 @@
 {"ts": 1760140931.342426, "event": "endpoint_profile_activate", "name": "google/gemma-3-4b", "endpoint": "http://192.168.5.72:1234"}
 {"ts": 1760141009.5157912, "event": "chat_request", "ip": "192.168.5.72", "content_length": 143}
 {"ts": 1760141767.941188, "event": "chat_request", "ip": "192.168.5.72", "content_length": 103}
+{"ts": 1760142291.705248, "event": "chat_request", "ip": "127.0.0.1", "content_length": 12}
+{"ts": 1760142299.844069, "event": "chat_request", "ip": "127.0.0.1", "content_length": 12}
+{"ts": 1760142318.827893, "event": "chat_request", "ip": "127.0.0.1", "content_length": 15}
+{"ts": 1760142512.810102, "event": "chat_request", "ip": "127.0.0.1", "content_length": 13}
+{"ts": 1760142553.827712, "event": "chat_request", "ip": "127.0.0.1", "content_length": 158}
+{"ts": 1760144873.033094, "event": "endpoint_profile_upsert", "name": "local-bad", "endpoint": "http://127.0.0.1:9999", "ok": false, "persist": false}
+{"ts": 1760148720.100464, "event": "endpoint_test", "endpoint": "http://127.0.0.1:9999", "ok": false, "error": "connection_refused"}

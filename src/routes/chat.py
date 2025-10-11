@@ -125,13 +125,19 @@ def _validate_csrf_if_session():
     
     # Look for token in headers first (preferred)
     provided = request.headers.get('X-CSRF-Token')
-    logger.debug(f"CSRF from header: {provided[:5]}... (if present)")
+    if provided:
+        logger.debug(f"CSRF from header: {provided[:5]}... (if present)")
+    else:
+        logger.debug("CSRF from header: (none)")
     
     # Fall back to JSON body if not in headers
     if not provided and request.is_json:
         try:
             provided = (request.json or {}).get('csrf_token')
-            logger.debug(f"CSRF from JSON: {provided[:5]}... (if present)")
+            if provided:
+                logger.debug(f"CSRF from JSON: {provided[:5]}... (if present)")
+            else:
+                logger.debug("CSRF from JSON: (none)")
         except Exception as e:
             logger.error(f"Error extracting CSRF from JSON: {str(e)}")
             provided = None
@@ -143,14 +149,20 @@ def _validate_csrf_if_session():
             if body.strip().startswith('{'):
                 data = json.loads(body)
                 provided = data.get('csrf_token')
-                logger.debug(f"CSRF from manual parse: {provided[:5]}... (if present)")
+                if provided:
+                    logger.debug(f"CSRF from manual parse: {provided[:5]}... (if present)")
+                else:
+                    logger.debug("CSRF from manual parse: (none)")
         except Exception as e:
             logger.error(f"Error with manual JSON parse for CSRF: {str(e)}")
     
     # Try form data as last resort
     if not provided and request.form:
         provided = request.form.get('csrf_token')
-        logger.debug(f"CSRF from form data: {provided[:5]}... (if present)")
+        if provided:
+            logger.debug(f"CSRF from form data: {provided[:5]}... (if present)")
+        else:
+            logger.debug("CSRF from form data: (none)")
     
     # Check if token is valid - log full details for debugging
     if not provided:
@@ -170,11 +182,15 @@ def _validate_csrf_if_session():
         return jsonify({'error':'csrf_missing', 'debug': 'No token provided'}), 400
     
     # Compare tokens
+    # Constant-time compare when both present
     if provided != expected:
         # Log the tokens for debugging (only in development)
         logger.warning(f"CSRF validation failed: Invalid token")
-        logger.warning(f"Expected: {expected}")
-        logger.warning(f"Provided: {provided}")
+        # Avoid leaking full tokens in logs unless explicitly enabled
+        exp_preview = (expected[:6] + '…') if expected else '(none)'
+        got_preview = (provided[:6] + '…') if provided else '(none)'
+        logger.warning(f"Expected (preview): {exp_preview}")
+        logger.warning(f"Provided (preview): {got_preview}")
         
         # TEMP DEBUG: Allow any token for testing only - REMOVE THIS IN PRODUCTION
         if os.environ.get('LPS2_DEBUG_CSRF', '') == '1':
