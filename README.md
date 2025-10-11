@@ -1,4 +1,4 @@
-# LPS2 – Local • Private • Secure Small Language Model Server 🔐🤖
+# LPS2: Local, Private, and Secure Small Language Model Server 🔐🤖
 
 <div align="center">
 
@@ -24,6 +24,14 @@
 </p>
 
 </div>
+
+<img width="1481" height="953" alt="Screenshot 2025-10-10 at 4 55 19 PM" src="https://github.com/user-attachments/assets/23ece86f-9934-4def-890e-fa4d74356bca" />
+<img width="1428" height="1074" alt="Screenshot 2025-10-10 at 4 56 41 PM" src="https://github.com/user-attachments/assets/225ebc51-6f55-4cee-8628-f75082526612" />
+<img width="1407" height="1074" alt="Screenshot 2025-10-10 at 5 02 38 PM" src="https://github.com/user-attachments/assets/3a8c4f41-d4bb-47aa-aa98-67af78723c11" />
+<img width="1442" height="1071" alt="Screenshot 2025-10-10 at 4 57 50 PM" src="https://github.com/user-attachments/assets/3719eb08-27d4-4230-81c2-a7062f6009db" />
+<img width="1407" height="1074" alt="Screenshot 2025-10-10 at 5 03 27 PM" src="https://github.com/user-attachments/assets/3ca68949-66ce-4a15-9f94-efe3123bc44b" />
+<img width="1407" height="1074" alt="Screenshot 2025-10-10 at 5 05 00 PM" src="https://github.com/user-attachments/assets/35bf4305-1d2d-4947-b9b2-6994141bc453" />
+<img width="1407" height="1074" alt="Screenshot 2025-10-10 at 5 05 14 PM" src="https://github.com/user-attachments/assets/dc1f8d95-60a4-4c5f-999b-20c3d64c2088" />
 
 ## 🚀 Quick Start
 
