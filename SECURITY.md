@@ -29,4 +29,9 @@ Deploying with default credentials poses a significant security risk. Generate s
 
 5. **Regular Updates**: Keep dependencies updated to address security vulnerabilities
 
+6. **Login-First & Session Timeouts**: The application enforces a login page before accessing the UI and supports configurable session timeouts:
+   - `LPS2_SESSION_IDLE_SECONDS` (default 1800s) – expires idle sessions
+   - `LPS2_SESSION_ABSOLUTE_SECONDS` (default 28800s) – maximum session lifetime
+   - API requests receive `401 {"error":"session_expired"}`; the client automatically redirects to `/login` with a toast.
+
 For more detailed security information, see the [ARCHITECTURE.md](ARCHITECTURE.md) file.

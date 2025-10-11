@@ -11,6 +11,7 @@ LPS2 is a Flask-based web application that provides a privacy-focused chat inter
 ### 1. Core Application
 
 - **app.py**: Main application entry point, sets up Flask, authentication, and routes
+   - Enforces login-first access and configurable session timeouts (idle/absolute)
 - **config.py**: Central configuration module that loads environment variables with defaults
 - **routes/**: Directory containing route handlers for different endpoints
   - **chat.py**: Handles chat-related routes and LLM interactions
@@ -32,6 +33,7 @@ LPS2 is a Flask-based web application that provides a privacy-focused chat inter
 - **static/login.html**: Authentication interface
 - **static/admin.html**: Administration panel
 - **static/js/common.js**: Shared JavaScript utilities
+   - Centralized fetch with CSRF handling and session-expired (401) redirect/toast logic
 
 ## Data Flow
 
@@ -64,6 +66,7 @@ LPS2 is a Flask-based web application that provides a privacy-focused chat inter
 - API key authentication for programmatic access
 - Role-based access control (user/admin)
 - CSRF protection for state-changing operations
+ - Login-first enforcement and session timeouts (idle/absolute), with client-side redirect on expiration
 
 ### Content Security
 

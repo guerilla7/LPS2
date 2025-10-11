@@ -140,6 +140,13 @@
           console.error(`Failed to parse error response from ${url}: ${e.message}`);
         }
         
+        // Handle session expiration
+        if (response.status === 401 && errorData && errorData.error === 'session_expired') {
+          try { showToast('Your session expired. Redirecting to login…', 'warn'); } catch(_){ console.warn('Session expired'); }
+          setTimeout(()=>{ window.location.href = '/login'; }, 900);
+          return response;
+        }
+
         // Handle CSRF errors
         if (errorData && (errorData.error === 'csrf_missing' || errorData.error === 'csrf_invalid')) {
           console.warn(`CSRF Error: ${errorData.error} on ${url}. Refreshing auth...`);

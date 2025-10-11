@@ -67,3 +67,12 @@
 {"ts": 1760135954.8284218, "event": "endpoint_test", "endpoint": "http://192.168.5.72:1234", "ok": true, "error": null}
 {"ts": 1760135996.1867929, "event": "endpoint_profile_activate", "name": "qwen/qwen3-4b-thinking-2507", "endpoint": "http://192.168.5.72:1234"}
 {"ts": 1760136009.560288, "event": "chat_request", "ip": "192.168.5.72", "content_length": 141}
+{"ts": 1760138630.195103, "event": "endpoint_test", "endpoint": "http://192.168.5.72:1234", "ok": true, "error": null}
+{"ts": 1760138635.1385422, "event": "endpoint_profile_upsert", "name": "qwen/qwen3-4b-thinking-2507:2", "endpoint": "http://192.168.5.72:1234", "ok": true, "persist": true}
+{"ts": 1760138638.593942, "event": "endpoint_profile_activate", "name": "qwen/qwen3-4b-thinking-2507:2", "endpoint": "http://192.168.5.72:1234"}
+{"ts": 1760138664.007523, "event": "chat_request", "ip": "192.168.5.72", "content_length": 119}
+{"ts": 1760139870.267424, "event": "chat_request", "ip": "192.168.5.72", "content_length": 353}
+{"ts": 1760140925.810403, "event": "endpoint_test", "endpoint": "http://192.168.5.72:1234", "ok": true, "error": null}
+{"ts": 1760140928.499695, "event": "endpoint_profile_upsert", "name": "google/gemma-3-4b", "endpoint": "http://192.168.5.72:1234", "ok": true, "persist": true}
+{"ts": 1760140931.342426, "event": "endpoint_profile_activate", "name": "google/gemma-3-4b", "endpoint": "http://192.168.5.72:1234"}
+{"ts": 1760141009.5157912, "event": "chat_request", "ip": "192.168.5.72", "content_length": 143}

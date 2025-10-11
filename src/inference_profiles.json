@@ -1,0 +1,25 @@
+{
+  "profiles": {
+    "qwen/qwen3-4b-thinking-2507:2": {
+      "endpoint": "http://192.168.5.72:1234",
+      "last_test": {
+        "ok": true,
+        "endpoint": "http://192.168.5.72:1234",
+        "model": "qwen/qwen3-4b-thinking-2507:2",
+        "latency_ms": 4.7,
+        "checked_at": 1760138638.5914938
+      }
+    },
+    "google/gemma-3-4b": {
+      "endpoint": "http://192.168.5.72:1234",
+      "last_test": {
+        "ok": true,
+        "endpoint": "http://192.168.5.72:1234",
+        "model": "google/gemma-3-4b",
+        "latency_ms": 3.8,
+        "checked_at": 1760140931.341994
+      }
+    }
+  },
+  "active": "google/gemma-3-4b"
+}

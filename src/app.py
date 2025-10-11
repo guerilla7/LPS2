@@ -1,8 +1,10 @@
 from flask import Flask, request, jsonify, send_from_directory, session, redirect, url_for
+import time
 import secrets
 from routes.chat import init_chat_route
 import sys
 import warnings
+from datetime import timedelta
 
 import os
 # SECURITY WARNING: Default API key for development only
@@ -107,37 +109,17 @@ def login_page():
 
 @app.route('/login', methods=['POST'])
 def login_post():
+    # Step 1: Extract and validate credentials
     try:
         # Import here to avoid circular imports
         from utils.schemas import LoginSchema
         from utils.validation import validate_data
-        
-        # Get data from the appropriate source
         data = request.json if request.is_json else request.form
-        
-        # Directly validate the data
         is_valid, validated_data, errors = validate_data(data, LoginSchema)
-        
-        # Handle validation errors
         if not is_valid:
-            return jsonify({
-                'error': 'validation_error',
-                'message': 'Invalid login credentials',
-                'details': errors
-            }), 400
-            
-        # Use validated data
+            return jsonify({'error': 'validation_error', 'message': 'Invalid login credentials', 'details': errors}), 400
         username = validated_data['username'].strip()
         password = validated_data['password']
-        
-        # Check credentials
-        stored = USERS.get(username)
-        if not stored or not check_password_hash(stored, password):
-            return jsonify({'error': 'invalid_credentials'}), 401
-        
-        session['user'] = username
-        # Generate CSRF token on login
-        session['csrf_token'] = secrets.token_urlsafe(32)
     except ImportError:
         # Fallback if validation module is not available
         data = request.json if request.is_json else request.form
@@ -145,32 +127,34 @@ def login_post():
         password = data.get('password') or ''
         if not username or not password:
             return jsonify({'error': 'missing_credentials'}), 400
-        stored = USERS.get(username)
-        if not stored or not check_password_hash(stored, password):
-            return jsonify({'error': 'invalid_credentials'}), 401
-        session['user'] = username
-        # Generate CSRF token on login
-        session['csrf_token'] = secrets.token_urlsafe(32)
     except Exception as e:
-        # Log the error but continue with the original implementation
+        # Log the error but continue with a simple schema-less validation
         app.logger.error(f"Login validation error: {str(e)}")
         data = request.json if request.is_json else request.form
         username = (data.get('username') or '').strip()
         password = data.get('password') or ''
         if not username or not password:
             return jsonify({'error': 'missing_credentials'}), 400
-        stored = USERS.get(username)
-        if not stored or not check_password_hash(stored, password):
-            return jsonify({'error': 'invalid_credentials'}), 401
-        session['user'] = username
-        # Generate CSRF token on login
-        session['csrf_token'] = secrets.token_urlsafe(32)
+
+    # Step 2: Verify credentials
+    stored = USERS.get(username)
+    if not stored or not check_password_hash(stored, password):
+        return jsonify({'error': 'invalid_credentials'}), 401
+
+    # Step 3: Establish session
+    session['user'] = username
+    session['csrf_token'] = secrets.token_urlsafe(32)
+    session['login_time'] = int(time.time())
+    session['last_activity'] = int(time.time())
+    session.permanent = True
     return jsonify({'ok': True, 'user': username})
 
 @app.route('/logout', methods=['POST'])
 def logout():
     session.pop('user', None)
     session.pop('csrf_token', None)
+    session.pop('login_time', None)
+    session.pop('last_activity', None)
     return jsonify({'ok': True})
 
 @app.route('/health')
@@ -192,6 +176,62 @@ def auth_status():
     is_admin = bool(user in ADMIN_USERS) if user else False
     return jsonify({'authenticated': bool(user), 'user': user, 'csrf_token': token, 'is_admin': is_admin})
 
+# --- Session enforcement and timeouts ---
+@app.before_request
+def _enforce_login_and_timeouts():
+    # Allow health and auth status without auth
+    if request.endpoint in {'health', 'auth_status', 'login_page', 'login_post'}:
+        return None
+
+    path = request.path or ''
+    # Block direct access to static HTML except login.html when not authenticated
+    if not session.get('user'):
+        if path in {'/', '/admin'}:
+            return redirect(url_for('login_page'))
+        if path.startswith('/static/') and path.lower().endswith('.html') and not path.endswith('/login.html') and not path.endswith('login.html'):
+            return redirect(url_for('login_page'))
+        # For API routes without session, allow existing key-based flows to proceed.
+        # UI routes will be guarded by above conditions.
+        return None
+
+    # Session present: enforce idle and absolute timeouts
+    now_ts = int(time.time())
+    try:
+        idle_limit = int(os.environ.get('LPS2_SESSION_IDLE_SECONDS', '1800'))  # 30 minutes default
+    except Exception:
+        idle_limit = 1800
+    try:
+        abs_limit = int(os.environ.get('LPS2_SESSION_ABSOLUTE_SECONDS', '28800'))  # 8 hours default
+    except Exception:
+        abs_limit = 28800
+
+    login_time = session.get('login_time') or now_ts
+    last_activity = session.get('last_activity') or now_ts
+
+    expired = False
+    reason = None
+    if abs_limit > 0 and (now_ts - login_time) > abs_limit:
+        expired = True
+        reason = 'absolute_timeout'
+    elif idle_limit > 0 and (now_ts - last_activity) > idle_limit:
+        expired = True
+        reason = 'idle_timeout'
+
+    if expired:
+        # Clear session and respond appropriately (JSON vs HTML)
+        session.pop('user', None)
+        session.pop('csrf_token', None)
+        session.pop('login_time', None)
+        session.pop('last_activity', None)
+        wants_json = request.is_json or (request.accept_mimetypes.best == 'application/json')
+        if wants_json or request.path.startswith('/chat') or request.path.startswith('/admin/llm-endpoints'):
+            return jsonify({'error': 'session_expired', 'reason': reason}), 401
+        return redirect(url_for('login_page'))
+
+    # Refresh idle timer
+    session['last_activity'] = now_ts
+    return None
+
 @app.route('/admin')
 @login_required
 @admin_required
@@ -199,6 +239,12 @@ def admin_page():
     return send_from_directory(app.static_folder, 'admin.html')
 
 if __name__ == '__main__':
+    # Configure absolute session lifetime for Flask's permanent session cookie behavior
+    try:
+        _abs_secs = int(os.environ.get('LPS2_SESSION_ABSOLUTE_SECONDS', '28800'))
+        app.permanent_session_lifetime = timedelta(seconds=_abs_secs)
+    except Exception:
+        pass
     enable_tls = os.environ.get('LPS2_ENABLE_TLS', '').lower() in ('1','true','yes','on')
     cert_path = os.environ.get('LPS2_TLS_CERT')
     key_path = os.environ.get('LPS2_TLS_KEY')

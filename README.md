@@ -1,4 +1,4 @@
-# LPS2 – Local / Private / Secure Small Language Model Server
+# LPS2 – Local • Private • Secure Small Language Model Server 🔐🤖
 
 <div align="center">
 
@@ -25,7 +25,7 @@
 
 </div>
 
-## Quick Start
+## 🚀 Quick Start
 
 Get up and running with LPS2 in minutes:
 
@@ -37,11 +37,11 @@ cd LPS2
 # Start the development server
 ./scripts/run_dev.sh
 
-# Visit http://localhost:5000 in your browser
-# Default login: admin / admin123
+# Visit https://localhost:5000 in your browser (accept the self-signed cert)
+# Default login (dev): admin / admin123
 ```
 
-### Docker Quickstart
+### 🐳 Docker Quickstart
 
 ```bash
 # Build and run with Docker
@@ -51,53 +51,53 @@ docker run -p 5000:5000 lps2
 # Visit http://localhost:5000 in your browser
 ```
 
-## Introduction: The Case for Local and Private LLM Inference
+## 🧭 Why Local & Private LLM Inference?
 
 In an era where data privacy and security concerns are paramount, locally-hosted small language models (SLMs) offer compelling advantages over cloud-based alternatives. Running LLMs locally enables organizations to maintain complete control over sensitive data, eliminating exposure risks inherent in third-party API calls and data transfers. This is particularly crucial for cybersecurity applications and privacy-sensitive experiments where data sovereignty, regulatory compliance (GDPR, HIPAA, CCPA), and protection of intellectual property are non-negotiable requirements.
 
 Local inference servers also provide enhanced operational security by eliminating external dependencies, reducing attack surfaces, and allowing for air-gapped deployments in high-security environments. While smaller models may not match the capabilities of their larger counterparts in some domains, recent research demonstrates that carefully fine-tuned SLMs can achieve comparable performance for specialized tasks while offering significantly reduced latency, lower computational overhead, and improved inference speed—critical factors for real-time applications.
 
-## Features and Capabilities
+## ✨ Features and Capabilities
 
 LPS2 provides a streamlined, privacy‑focused chat interface over locally or self‑hosted OpenAI‑compatible inference endpoints:
 
-### User Interface
+### 🗣️ User Interface
 - **Modern Chat UI**: Token estimation, undo functionality, command palette
 - **Privacy Features**: PII preflight scanning, attachment support with image metadata stripping
 - **Tool Integration**: Wikipedia search placeholder and extensible framework
 
-### Admin Console
+### ⚙️ Admin Console
 - **Knowledge Base Management**: Text/PDF ingestion with OCR support, search, deletion, and quarantine controls
 - **Memory Management**: Browse, search, and delete conversation memories with summarization flags
 - **Security Tools**: Quarantine viewer and comprehensive audit event logging
 - **Inference Management**: Create, test, and activate multiple LLM endpoints with performance metrics
 
-### Advanced Features
+### 🧠 Advanced Features
 - **Retrieval-Augmented Generation**: Knowledge citations with confidence scoring
 - **Conversation Memory**: Lightweight persistence with summarization and suspicious content flagging
-- **Security Controls**: CSRF protection, API key authentication, rate limiting, and audit logging
+- **Security Controls**: Login-first access, CSRF protection, session timeouts, API key authentication, rate limiting, and audit logging
 - **Data Protection**: Heuristic PII redaction and content quarantine pipeline
 
-### Technical Features
+### 🔧 Technical Features
 - **TLS Support**: Optional internal TLS (self-signed in development) with production guidance
 - **Extensible Architecture**: Modular front-end utilities and unified navigation
 - **Deployment Options**: Development mode and production-ready configurations
 
 All features are designed with privacy, security, and local control as primary objectives, making LPS2 ideal for organizations with strict data sovereignty requirements.
 
-## Project Structure (Simplified)
+## 🗂️ Project Structure (Simplified)
 
 ```
 LPS2
 ├── src
-│   ├── app.py                  # Flask app bootstrap, auth, TLS config
+│   ├── app.py                  # Flask app bootstrap, login-first, session timeouts, TLS config
 │   ├── config.py               # Env loader + runtime configuration
 │   ├── routes/
 │   │   └── chat.py             # All API endpoints (chat, KB, memory, profiles, audit, etc.)
 │   ├── static/
 │   │   ├── index.html          # Chat UI
 │   │   ├── admin.html          # Admin Console UI
-│   │   ├── js/common.js        # Shared front-end utilities
+│   │   ├── js/common.js        # Shared front-end utilities (CSRF, session-expired redirect)
 │   │   └── ... (assets)
 │   └── utils/
 │       ├── llm_client.py       # Base client for inference endpoint
@@ -174,11 +174,11 @@ That's it! Start chatting with your local LLM while maintaining complete data pr
 
 5. **Default Credentials**: The first admin user/password come from environment variables (or defaults). See ENV section below.
 
-## Basic Usage
+## 💬 Basic Usage
 
 Enter prompts in the chat UI; attachments (text / image) are sanitized (image metadata stripped). If the prompt risks including detected PII patterns (email, SSN-like, credit card, phone) an inline warning appears (dismissible). The request is forwarded to the active inference endpoint (initially from `LPS2_LLM_ENDPOINT` or an activated profile). Citations from the Knowledge Base appear when retrieval augmentation returns matches.
 
-## Generation & Inference Controls
+## 🎛️ Generation & Inference Controls
 
 You can control response length and sampling via environment variables before starting the server:
 
@@ -193,7 +193,7 @@ python src/app.py  # or bash scripts/run_dev.sh
 
 If a response is cut off due to length, the client automatically issues continuation prompts ("Continue.") up to the configured number of rounds and concatenates the segments.
 
-### Persistent Configuration (.env)
+### 🧾 Persistent Configuration (.env)
 
 You can persist these and other settings by creating a `.env` file at project root (same level as `src/`). Example template in `ENV_EXAMPLE.txt`:
 
@@ -208,32 +208,32 @@ LPS2_TOP_P=0.9
 
 On startup the app loads `.env` first (without overwriting already-exported environment variables), then falls back to defaults.
 
-## Feature Overview
+## 📚 Feature Overview
 
 > **⚠️ SECURITY NOTICE:** This project contains default credentials that must be changed before deployment.  
 > See [SECURITY.md](SECURITY.md) for important security information.
 
 | Area | Highlights |
 |------|------------|
-| Authentication | Session login (username/password) + API key fallback (`LPS2_API_KEY`) |
+| Authentication | Session login (username/password), login-first enforcement, + API key fallback (`LPS2_API_KEY`) |
 | Authorization | Role-based admin (`LPS2_ADMIN_USERS`) gating for all mutating KB / memory / profile routes |
-| CSRF | Per-session token required for unsafe (POST) when session auth in use |
+| CSRF | Per-session token required for unsafe (POST) when session auth in use; client auto-retries on token refresh |
 | Knowledge Base | Text/PDF ingest (optional OCR via Tesseract), search, quarantine pipeline, deletion, source tagging |
 | Memory Store | Rolling conversation memory with summaries, suspicious flags, deletion & search |
 | Inference Profiles | Create/test (latency + model probe)/activate multiple endpoints with optional persistence |
 | PII Guard & Redaction | Client-side preflight + server redaction heuristics (configurable) |
 | Audit & Security | Append-only audit log for admin actions & ingestion events |
-| UI Enhancements | Command palette, undo last exchange, token estimation, attachments, dark/light mode, nav bar |
+| UI Enhancements | Command palette, undo last exchange, token estimation, attachments, dark/light mode, nav bar, session-expired toast + redirect |
 | TLS | Self-signed by default in dev; production via reverse proxy + Let's Encrypt |
 | Rate Limiting | In-memory window + burst controls (`LPS2_RATE_*`) |
 
 See `src/config.py` for toggle logic.
 
-## Enabling TLS (HTTPS)
+## 🔒 Enabling TLS (HTTPS)
 
 For development you can enable HTTPS with a self-signed certificate. The built-in Flask server is not production grade; in production you should place Gunicorn/Uvicorn behind a reverse proxy (Nginx, Caddy, Traefik) terminating TLS with a trusted certificate (e.g., via Let's Encrypt).
 
-### Quick Start (Self-Signed Dev Cert)
+### 🔐 Quick Start (Self-Signed Dev Cert)
 
 TLS is now enabled by default in the dev script. To opt out (HTTP only):
 
@@ -250,7 +250,7 @@ bash scripts/run_dev.sh
 
 If no cert/key are provided, the dev script will auto-generate a pair in `dev_certs/` (requires `openssl`). Access the app at: `https://localhost:5000` (you'll need to accept the browser warning for the self-signed certificate).
 
-### Generating Your Own Self-Signed Certificate Manually
+### 🛠️ Generating Your Own Self-Signed Certificate Manually
 
 ```bash
 openssl req -x509 -nodes -newkey rsa:2048 -days 365 \
@@ -262,7 +262,7 @@ export LPS2_TLS_KEY=$PWD/dev-key.pem
 python src/app.py
 ```
 
-### Production Recommendation (Trusted Certs)
+### 🏭 Production Recommendation (Trusted Certs)
 
 Use a reverse proxy with automatic certificate renewal. Example (Caddyfile excerpt):
 
@@ -286,7 +286,7 @@ server {
 
 Set `LPS2_ENABLE_TLS=0` in that case and let the proxy handle encryption.
 
-### Automatic Let's Encrypt Certificates
+### 🔁 Automatic Let's Encrypt Certificates
 
 You should terminate TLS at a reverse proxy that can automatically obtain and renew certificates from Let's Encrypt. Two common approaches:
 
@@ -371,14 +371,14 @@ volumes:
    caddy-config:
 ```
 
-#### Gunicorn (App Server) Command Examples
+#### 🐍 Gunicorn (App Server) Command Examples
 
 Recommended run behind proxy:
 ```bash
 gunicorn -w 4 -k gthread --threads 8 -b 127.0.0.1:5000 --timeout 120 src.app:app
 ```
 
-#### Security Headers (Proxy Layer)
+#### 🛡️ Security Headers (Proxy Layer)
 Add at proxy (Nginx example inside server block):
 ```
 add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
@@ -388,18 +388,18 @@ add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 add_header Permissions-Policy "geolocation=(), microphone=(), camera=()";
 ```
 
-#### Disable Internal TLS When Using a Proxy
+#### 🚫 Disable Internal TLS When Using a Proxy
 Ensure:
 ```bash
 export LPS2_ENABLE_TLS=0
 ```
 or set `LPS2_DISABLE_TLS=1` with the dev script. Internal self-signed certs are unnecessary when a trusted proxy terminates HTTPS.
 
-### Renewal Monitoring
+### ⏱️ Renewal Monitoring
 For Certbot: check logs in `/var/log/letsencrypt/` and consider a cron alert on failure.
 For Caddy: certificates auto-renew; inspect `docker logs caddy` (container) or journal logs for issues.
 
-## Dependencies
+## 📦 Dependencies
 Python packages (see `requirements.txt`):
 
 | Package | Purpose |
@@ -421,7 +421,7 @@ System dependencies (only if using PDF OCR path):
 
 If OCR dependencies are missing, ingestion without OCR still works for plain text and directly extractable PDFs.
 
-## Environment Variables
+## ⚙️ Environment Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
@@ -446,6 +446,13 @@ If OCR dependencies are missing, ingestion without OCR still works for plain tex
 | LPS2_TLS_CERT / LPS2_TLS_KEY | Paths to cert/key for internal TLS | dev_certs/* if auto |
 | LPS2_FORCE_HTTPS | Redirect HTTP→HTTPS (proxy scenarios) | 0 |
 | LPS2_PORT | Listen port | 5000 |
+
+Session timeouts (new):
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| LPS2_SESSION_IDLE_SECONDS | Idle timeout before session expires | 1800 (30m) |
+| LPS2_SESSION_ABSOLUTE_SECONDS | Max session lifetime (absolute) | 28800 (8h) |
 
 Runtime profile system can supersede `LPS2_LLM_ENDPOINT` after activating an endpoint profile via Admin Console.
 
@@ -574,11 +581,11 @@ For optimal balance of performance and quality:
 
 Most models are available through Hugging Face or directly from model providers.
 
-## Contributing
+## 🤝 Contributing
 
 Feel free to submit issues or pull requests if you have suggestions or improvements for the project.
 
-## Roadmap / Nice-to-Haves
+## 🗺️ Roadmap / Nice-to-Haves
 * Pagination for large Knowledge Base & audit logs.
 * Export/import utilities for KB and memory stores.
 * Automated test suite (auth, CSRF, profile activation, rate limit).
@@ -588,7 +595,7 @@ Feel free to submit issues or pull requests if you have suggestions or improveme
 ---
 For production deployment, prefer: Gunicorn (workers) + Caddy/Nginx TLS termination + hardened headers + real secrets management (Vault/SM) + external persistence (database / object store) for scaling beyond single host.
 
-## About the Author
+## 👨‍💻 About the Author
 
 <div align="center">
   <img src="https://img.shields.io/badge/Created%20By-Ron%20F.%20Del%20Rosario-1f425f.svg">
