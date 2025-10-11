@@ -3,6 +3,7 @@
 <div align="center">
 
 <p>
+<a href="https://deepwiki.com/guerilla7/LPS2"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
 <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
 <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.8+-blue.svg" alt="Python 3.8+"></a>
 <a href="https://flask.palletsprojects.com/"><img src="https://img.shields.io/badge/Flask-2.2.2-green.svg" alt="Flask"></a>
